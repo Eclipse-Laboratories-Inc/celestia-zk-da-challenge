@@ -1,0 +1,13 @@
+[package]
+name = "toolkit"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+alloy-primitives = { workspace = true }
+alloy-sol-types = { workspace = true }
+bincode = { workspace = true }
+celestia-types = { workspace = true }
+risc0-steel = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }

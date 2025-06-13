@@ -1,0 +1,18 @@
+[package]
+name = "test-toolkit"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+alloy = { workspace = true }
+alloy-contract = { workspace = true }
+anyhow = { workspace = true }
+bincode = { workspace = true }
+celestia-rpc = { workspace = true }
+celestia-types = { workspace = true }
+futures-util = { workspace = true }
+log = { workspace = true }
+risc0-steel = { workspace = true }
+rstest = { workspace = true }
+tokio = { workspace = true }
+toolkit = { workspace = true }
