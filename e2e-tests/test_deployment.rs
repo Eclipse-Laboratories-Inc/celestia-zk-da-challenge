@@ -2,19 +2,17 @@
 
 mod fixtures;
 
+use crate::fixtures::Counter::CounterInstance;
 use alloy::primitives::U256;
 use alloy::providers::{DynProvider, Provider};
 use rstest::rstest;
-// Bring the fixtures and binding types from the harness crate itself.
-// (Hyphens in the package name are turned into underscores by Rust.)
-use crate::fixtures::SimpleStorage::SimpleStorageInstance;
 use crate::fixtures::{deployed_contract, provider};
 
-#[rstest] // rstest injects the fixtures by name
-#[tokio::test] // async test runtime
+#[rstest]
+#[tokio::test]
 async fn contract_was_deployed(
     provider: &'static DynProvider,
-    #[future] deployed_contract: &'static SimpleStorageInstance<(), DynProvider>,
+    #[future] deployed_contract: &'static CounterInstance<(), DynProvider>,
 ) {
     let deployed_contract = deployed_contract.await;
 
@@ -32,10 +30,10 @@ async fn contract_was_deployed(
 
     // 2) The public getter should return its default value (0).
     let stored = deployed_contract
-        .value()
+        .counter()
         .call()
         .await
         .expect("contract call failed");
 
-    assert_eq!(stored.value, U256::from(0));
+    assert_eq!(stored._0, U256::from(0));
 }

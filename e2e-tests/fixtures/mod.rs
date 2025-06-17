@@ -4,14 +4,14 @@
 //! * Uses rstest’s `#[once]` so Anvil and the deployment happen **exactly one time**
 //!   per test binary run.
 
-use std::str::FromStr;
+use crate::fixtures::Counter::CounterInstance;
 use alloy::network::EthereumWallet;
-use crate::fixtures::SimpleStorage::SimpleStorageInstance;
 use alloy::providers::{DynProvider, Provider, ProviderBuilder};
-use alloy::signers::local::{PrivateKeySigner};
+use alloy::signers::local::PrivateKeySigner;
 use alloy::sol;
 use once_cell::sync::Lazy;
 use rstest::*;
+use std::str::FromStr;
 use tokio::sync::OnceCell;
 
 /// Spins up an Anvil child-process once and keeps it for the whole run.
@@ -35,6 +35,12 @@ pub fn provider() -> &'static DynProvider {
     &INSTANCE
 }
 
+sol!(
+    #[sol(rpc)]
+    Counter,
+    "../out/Counter.sol/Counter.json"
+);
+
 sol! {
     #[sol(
         rpc,
@@ -53,12 +59,19 @@ sol! {
 #[fixture]
 pub async fn deployed_contract(
     provider: &'static DynProvider,
-) -> &'static SimpleStorageInstance<(), DynProvider> {
+) -> &'static CounterInstance<(), DynProvider> {
     // One global cell that will hold the handle
-    static CONTRACT: OnceCell<SimpleStorageInstance<(), DynProvider>> = OnceCell::const_new();
+    static CONTRACT: OnceCell<CounterInstance<(), DynProvider>> = OnceCell::const_new();
 
-    CONTRACT.get_or_try_init(|| {
-        // no async #[once] fixture: create a throw-away Tokio runtime inside the call
-        SimpleStorage::deploy(provider.clone())
-    }).await.expect("Failed to deploy contract")
+    CONTRACT
+        .get_or_try_init(|| {
+            let deployer_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+                .parse()
+                .expect("Failed to parse deployer address");
+            
+            // no async #[once] fixture: create a throw-away Tokio runtime inside the call
+            Counter::deploy(provider.clone(), deployer_address)
+        })
+        .await
+        .expect("Failed to deploy contract")
 }
