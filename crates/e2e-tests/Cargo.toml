@@ -1,0 +1,29 @@
+[package]
+name = "e2e-tests"
+version = { workspace = true }
+edition = { workspace = true }
+publish = false
+
+[dev-dependencies]
+alloy = { workspace = true }
+bincode = { workspace = true }
+celestia-rpc = { workspace = true }
+celestia-types = { workspace = true }
+cli = { workspace = true }
+risc0-steel = { workspace = true }
+rstest = "0.25"
+test-toolkit = { workspace = true }
+tokio = { workspace = true }
+toolkit = { workspace = true }
+
+[[test]]
+name = "test-deployment"
+path = "test_deployment.rs"
+
+[[test]]
+name = "test-bad-challenges"
+path = "test_bad_challenges.rs"
+
+[[test]]
+name = "test-valid-challenges"
+path = "test_valid_challenges.rs"

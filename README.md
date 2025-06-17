@@ -4,7 +4,7 @@ This repository contains a [RISC Zero] guest program that demonstrates ZK data a
 and [Blobstream]. Users can use this program to generate a proof that a specific blob inside an Eclipse index blob
 (any of the blobs inside the index or the index itself) is unavailable on Celestia.
 
-The guest program uses Blobstream to attest the authenticity of Celestia blocks, uses Celestia row proofs to derive
+The guest program uses Blobstream to attest the authenticity of Celestia blocks, Celestia row proofs to derive
 the size of each Celestia block's Extended Data Square (EDS) and then performs a range check of the share indices
 of the challenged blob. If the challenged blob is out of bounds, the blob is proven as unavailable.
 
@@ -21,10 +21,10 @@ You will also need:
 * A Celestia Mocha RPC URL, to fetch data about the index blob.
 
 ```shell
-# A previously deployed counter, which will not work because of the guest image ID check.
+# A previously deployed counter. This will not work because of the guest image ID check.
 export COUNTER_ADDRESS=0x5CcC5C91357e68c644448f05e0027cC753c37711
 
-RUST_LOG=info RISC0_DEV_MODE=1 cargo run --package apps --bin publisher -- \
+RUST_LOG=info RISC0_DEV_MODE=1 cargo run --package cli --bin publisher -- \
     --eth-wallet-private-key ${ETH_PRIVATE_KEY} \
     --eth-rpc-url ${SEPOLIA_RPC_URL} \
     --celestia-rpc-url ${MOCHA_RPC_URL} \
@@ -40,8 +40,23 @@ You can test a few use cases:
 3. Invalid blob challenge inside the index: Specify a valid index blob (ex: 6671289:6:4) and challenge a random blob inside it (ex: 6671289:1000:1000)
 4. Deserialization error: Specify an existing blob that does not deserialize nicely (ex: 6671289:6:4).
 
+## Integration tests
 
+The integration tests use a Docker Compose setup with the following components:
+* A local [Celestia] deployment
+* [Anvil] to emulate Ethereum
+* A [Blobstream] service to publish Celestia block ranges to Anvil.
 
+This is all managed by the `ci/docker-compose.yml` file.
+
+The integration tests can be run with the following command:
+
+```shell
+bash scripts/run-tests.sh
+```
+
+If you want to reset the test environment, run `bash scripts/reset-tests.sh --reset`.
+Currently, tests must be run sequentially because the Ethereum RPC calls are not thread safe.
 
 
 

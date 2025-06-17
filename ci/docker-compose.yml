@@ -1,0 +1,99 @@
+services:
+  celestia-validator:
+    image: ghcr.io/celestiaorg/celestia-app:v3.8.1
+    container_name: celestia-validator
+    volumes:
+      - celestia_validator_data:/home/celestia
+      - ./celestia-config/celestia-validator:/testapp_files
+    ports:
+      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:26656:26656"
+      - "127.0.0.1:26657:26657"
+    entrypoint: /testapp_files/entrypoint.sh
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          '/bin/sh -c ''BLOCK_HEIGHT=$(curl -sf http://localhost:26657/status | jq -r .result.sync_info.latest_block_height); if [ "$$BLOCK_HEIGHT" -gt 1 ]; then exit 0; else echo "Block height too low: $$BLOCK_HEIGHT"; exit 1; fi''',
+        ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - celestia-network
+
+  celestia-bridge:
+    image: ghcr.io/celestiaorg/celestia-node:v0.22.3
+    container_name: celestia-bridge
+    environment:
+      - P2P_NETWORK=private
+      - "CELESTIA_CUSTOM=private:BFCEC14C1A50F3549777ED9EF350A9D79BE826C7836CD4FBEFE9C9C4F61A111F"
+    volumes:
+      - ./celestia-config/celestia-bridge:/testapp_files
+      - celestia_bridge_data:/home/celestia
+    entrypoint: /testapp_files/entrypoint.sh
+    command: celestia bridge start --p2p.network private --core.ip celestia-validator --core.port 9090 --rpc.addr 0.0.0.0 --rpc.port 26658 --rpc.skip-auth --keyring.keyname bridge
+    ports:
+      - "127.0.0.1:26659:26658"
+      - "127.0.0.1:2122:2121"
+    depends_on:
+      celestia-validator:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'AUTH_TOKEN=$(celestia bridge auth read --node.store=/home/celestia 2>/dev/null | tail -n 1); OUTPUT=$(curl -sf --max-time 0.5 -X POST -H "Content-type: application/json" -H "Accept: application/json" -H "Authorization: Bearer $$AUTH_TOKEN" -d ''{"id":1,"jsonrpc":"2.0","method":"header.SyncWait","params":[]}'' http://0.0.0.0:26658); if [ $$? -eq 0 ]; then exit 0; else echo "Catching up. $$OUTPUT"; exit 1; fi ',
+        ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - celestia-network
+
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.2.3
+    container_name: anvil
+    command: anvil --host 0.0.0.0 --port 8545 --chain-id 31337
+    environment:
+      # Necessary because of a bug in v1.2.3 that ignores the --host flag above
+      - ANVIL_IP_ADDR=0.0.0.0
+    ports:
+      - "127.0.0.1:8545:8545"
+    networks: [ celestia-network ]
+
+  blobstream:
+    image: odesenfans/blobstream0-dev:latest
+    container_name: blobstream0-dev
+    depends_on:
+      anvil:
+        condition: service_started
+      celestia-validator:
+        condition: service_healthy
+    volumes:
+      - ./celestia-config/blobstream0:/testapp_files
+    environment:
+      ETH_RPC: "http://anvil:8545"
+      CHAIN_ID: "31337"
+      PRIVATE_KEY_HEX: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+      TM_BLOCK_HEIGHT: "2"
+      MIN_BATCH_SIZE: "1"
+      BATCH_SIZE: "4"
+      TENDERMINT_RPC: "http://celestia-validator:26657"
+      RUST_LOG: "info"
+      RISC0_DEV_MODE: "true"
+    entrypoint: /testapp_files/entrypoint.sh
+    networks: [ celestia-network ]
+
+volumes:
+  celestia_validator_data:
+  celestia_bridge_data:
+
+networks:
+  celestia-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.0.0/24

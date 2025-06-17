@@ -11,7 +11,7 @@ import {ImageID} from "./ImageID.sol";
 /// before incrementing the counter. This contract leverages RISC0-zkVM for generating and verifying these proofs.
 contract Counter is ICounter {
     /// @notice Image ID of the only zkVM binary to accept verification from.
-    bytes32 public constant imageID = ImageID.DA_BRIDGE_ID;
+    bytes32 public constant imageID = ImageID.DA_CHALLENGE_GUEST_ID;
 
     /// @notice RISC Zero verifier contract address.
     IRiscZeroVerifier public immutable verifier;
@@ -25,6 +25,7 @@ contract Counter is ICounter {
     /// @notice Journal that is committed to by the guest.
     struct Journal {
         Steel.Commitment commitment;
+        address blobstreamContract;
     }
 
     /// @notice Initialize the contract, binding it to a specified RISC Zero verifier and ERC-20 token address.
