@@ -4,12 +4,15 @@
 //! * Uses rstest’s `#[once]` so Anvil and the deployment happen **exactly one time**
 //!   per test binary run.
 
-use std::cell::OnceCell;
+use std::str::FromStr;
+use alloy::network::EthereumWallet;
+use crate::fixtures::SimpleStorage::SimpleStorageInstance;
+use alloy::providers::{DynProvider, Provider, ProviderBuilder};
+use alloy::signers::local::{PrivateKeySigner};
+use alloy::sol;
 use once_cell::sync::Lazy;
 use rstest::*;
-use tokio::runtime::Runtime;
-use alloy::providers::{ProviderBuilder, DynProvider, Provider};
-use alloy::sol;
+use tokio::sync::OnceCell;
 
 /// Spins up an Anvil child-process once and keeps it for the whole run.
 ///
@@ -19,7 +22,15 @@ use alloy::sol;
 #[once]
 pub fn provider() -> &'static DynProvider {
     static INSTANCE: Lazy<DynProvider> = Lazy::new(|| {
-        ProviderBuilder::new().on_anvil_with_config(|anvil| anvil.block_time(1).chain_id(1337)).erased()
+        // Use Anvil's first default account
+        let private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+        let signer = PrivateKeySigner::from_str(private_key).unwrap();
+        let wallet = EthereumWallet::from(signer);
+
+        ProviderBuilder::new()
+            .wallet(wallet)
+            .on_anvil_with_config(|anvil| anvil.block_time(1).chain_id(1337))
+            .erased()
     });
     &INSTANCE
 }
@@ -40,17 +51,14 @@ sol! {
 }
 
 #[fixture]
-#[once]
-fn deployed_contract(
+pub async fn deployed_contract(
     provider: &'static DynProvider,
-) -> &'static SimpleStorage<DynProvider> {
+) -> &'static SimpleStorageInstance<(), DynProvider> {
     // One global cell that will hold the handle
-    static CONTRACT: OnceCell<SimpleStorage::<DynProvider>> = OnceCell::new();
+    static CONTRACT: OnceCell<SimpleStorageInstance<(), DynProvider>> = OnceCell::const_new();
 
-    CONTRACT.get_or_init(|| {
+    CONTRACT.get_or_try_init(|| {
         // no async #[once] fixture: create a throw-away Tokio runtime inside the call
-        let rt = Runtime::new().expect("failed to build RT");
-        rt.block_on(SimpleStorage::deploy(provider))
-            .expect("deploy failed")
-    })
+        SimpleStorage::deploy(provider.clone())
+    }).await.expect("Failed to deploy contract")
 }
