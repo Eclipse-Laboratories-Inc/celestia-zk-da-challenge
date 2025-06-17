@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["apps", "methods", "toolkit"]
+members = ["apps", "methods", "e2e-tests", "toolkit"]
 exclude = ["lib"]
 
 [workspace.package]
@@ -18,7 +18,7 @@ risc0-build = { version = "2.0", features = ["docker"] }
 risc0-zkvm = { version = "2.0", features = ["unstable"] }
 risc0-zkp = { version = "2.0", default-features = false }
 
-alloy = { version = "0.12", features = ["full"] }
+alloy = { version = "0.12", features = ["full", "provider-anvil-node"] }
 alloy-primitives = { version = "0.8", features = ["rlp", "serde", "std"] }
 alloy-sol-types = { version = "0.8" }
 anyhow = { version = "1.0.75" }
