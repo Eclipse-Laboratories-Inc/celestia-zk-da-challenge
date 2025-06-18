@@ -6,12 +6,19 @@
 
 use crate::fixtures::Counter::CounterInstance;
 use alloy::network::EthereumWallet;
+use alloy::node_bindings::{Anvil, AnvilInstance};
 use alloy::providers::{DynProvider, Provider, ProviderBuilder};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::sol;
 use rstest::*;
 use std::str::FromStr;
-use alloy::node_bindings::{Anvil, AnvilInstance};
+
+sol!(
+    #[sol(rpc)]
+    Counter,
+    "../out/Counter.sol/Counter.json"
+);
+
 
 pub struct TestEnv {
     pub provider: DynProvider,
@@ -48,26 +55,5 @@ pub async fn test_env() -> TestEnv {
         provider,
         counter_contract,
         _anvil: anvil,
-    }
-}
-
-sol!(
-    #[sol(rpc)]
-    Counter,
-    "../out/Counter.sol/Counter.json"
-);
-
-sol! {
-    #[sol(
-        rpc,
-        // ↓ super-minimal byte-code that just stores one uint256 (size ~150 B)
-        bytecode = "608060405234801561001057600080fd5b50600160008190555060d7806100286000396000f3fe608060405260043610601c5760003560e01c80632a1afcd91460215780636d4ce63c14602f575b600080fd5b60276049565b6040518082815260200191505060405180910390f35b60356057565b6040518082815260200191505060405180910390f35b60005481565b600160008190555056fea2646970667358221220ac4c6f3dc8e8a3e14decb38f6131aeec12cc3e018e70b22aabca1e42ca7e261564736f6c63430008110033"
-    )]
-    contract SimpleStorage {
-        uint256 public value;
-
-        function set(uint256 newValue) public {
-            value = newValue;
-        }
     }
 }
