@@ -2,34 +2,33 @@
 
 mod fixtures;
 
-use crate::fixtures::Counter::CounterInstance;
+use crate::fixtures::{test_env, TestEnv};
 use alloy::primitives::U256;
-use alloy::providers::{DynProvider, Provider};
+use alloy::providers::Provider;
 use rstest::rstest;
-use crate::fixtures::{deployed_contract, provider};
 
 #[rstest]
 #[tokio::test]
-async fn contract_was_deployed(
-    provider: &'static DynProvider,
-    #[future] deployed_contract: &'static CounterInstance<(), DynProvider>,
-) {
-    let deployed_contract = deployed_contract.await;
+async fn contract_was_deployed(#[future] test_env: TestEnv) {
+    let test_env = test_env.await;
+
+    let counter_contract = &test_env.counter_contract;
+    let provider = &test_env.provider;
 
     // 1) There must be byte-code at the deployed address.
     let code = provider
-        .get_code_at(*deployed_contract.address()) // latest block
+        .get_code_at(*counter_contract.address()) // latest block
         .await
         .expect("RPC getCode failed");
 
     assert!(
         !code.is_empty(),
         "no byte-code found at {:?}",
-        deployed_contract.address()
+        counter_contract.address()
     );
 
     // 2) The public getter should return its default value (0).
-    let stored = deployed_contract
+    let stored = counter_contract
         .counter()
         .call()
         .await
