@@ -2525,7 +2525,8 @@ name = "e2e-tests"
 version = "0.1.0"
 dependencies = [
  "alloy",
- "once_cell",
+ "celestia-rpc 0.10.0",
+ "celestia-types 0.11.0",
  "rstest",
  "tokio",
 ]

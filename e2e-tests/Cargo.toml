@@ -6,12 +6,11 @@ publish = false
 
 [dev-dependencies]
 alloy = { workspace = true }
-once_cell = "1.21.3"
+celestia-rpc = { workspace = true }
+celestia-types = { workspace = true }
 rstest = "0.25"
 tokio = { workspace = true }
 
 [[test]]
 name = "test-deployment"
 path = "test_deployment.rs"
-[dependencies]
-once_cell = "1.21.3"
