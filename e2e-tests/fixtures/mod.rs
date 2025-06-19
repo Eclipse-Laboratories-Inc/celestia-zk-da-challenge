@@ -6,7 +6,6 @@
 
 use crate::fixtures::Counter::CounterInstance;
 use alloy::network::EthereumWallet;
-use alloy::node_bindings::{Anvil, AnvilInstance};
 use alloy::providers::{DynProvider, Provider, ProviderBuilder};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::sol;
@@ -24,7 +23,6 @@ pub struct TestEnv {
     pub provider: DynProvider,
     pub counter_contract: CounterInstance<(), DynProvider>,
     pub celestia_client: CelestiaClient,
-    _anvil: AnvilInstance,
 }
 
 async fn deploy_counter(provider: DynProvider) -> CounterInstance<(), DynProvider> {
@@ -45,15 +43,11 @@ pub async fn test_env() -> TestEnv {
     let signer = PrivateKeySigner::from_str(private_key).unwrap();
     let wallet = EthereumWallet::from(signer);
 
-    let anvil = Anvil::new()
-        .block_time(1)
-        .chain_id(1337)
-        .try_spawn()
-        .expect("failed to spawn anvil instance");
-
     let provider = ProviderBuilder::new()
         .wallet(wallet)
-        .on_anvil_with_config(|anvil| anvil.block_time(1).chain_id(1337))
+        .connect("http://localhost:8545")
+        .await
+        .expect("Failed to connect to Anvil")
         .erased();
 
     let counter_contract = deploy_counter(provider.clone()).await;
@@ -71,6 +65,5 @@ pub async fn test_env() -> TestEnv {
         provider,
         counter_contract,
         celestia_client,
-        _anvil: anvil,
     }
 }

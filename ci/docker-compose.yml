@@ -56,11 +56,35 @@ services:
   anvil:
     image: ghcr.io/foundry-rs/foundry:v1.2.3
     container_name: anvil
-    command: >
-      anvil --host 0.0.0.0 --port 8545
-            --chain-id 31337 --block-time 1
+    command: anvil --host 0.0.0.0 --port 8545 --chain-id 31337 --block-time 1
+    environment:
+      # Necessary because of a bug in v1.2.3 that ignores the --host flag above
+      - ANVIL_IP_ADDR=0.0.0.0
     ports:
-      - "8545:8545"
+      - "127.0.0.1:8545:8545"
+    networks: [ celestia-network ]
+
+  blobstream:
+    image: odesenfans/blobstream0-dev:latest
+    container_name: blobstream0-dev
+    depends_on:
+      anvil:
+        condition: service_started
+      celestia-validator:
+        condition: service_healthy
+    volumes:
+      - ./celestia-config/blobstream0:/testapp_files
+    environment:
+      ETH_RPC: "http://anvil:8545"
+      CHAIN_ID: "31337"
+      PRIVATE_KEY_HEX: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+      TM_BLOCK_HEIGHT: "2"
+      MIN_BATCH_SIZE: "1"
+      BATCH_SIZE: "2"
+      TENDERMINT_RPC: "http://celestia-validator:26657"
+      RUST_LOG: "info"
+      RISC0_DEV_MODE: "true"
+    entrypoint: /testapp_files/entrypoint.sh
     networks: [ celestia-network ]
 
 volumes:
