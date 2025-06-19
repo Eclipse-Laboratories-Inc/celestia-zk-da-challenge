@@ -1,6 +1,6 @@
 services:
   celestia-validator:
-    image: ghcr.io/celestiaorg/celestia-app:v3.3.1-mocha
+    image: ghcr.io/celestiaorg/celestia-app:v3.8.1
     container_name: celestia-validator
     volumes:
       - celestia_validator_data:/home/celestia
@@ -24,7 +24,7 @@ services:
       - celestia-network
 
   celestia-bridge:
-    image: ghcr.io/celestiaorg/celestia-node:v0.20.1-mocha
+    image: ghcr.io/celestiaorg/celestia-node:v0.22.3
     container_name: celestia-bridge
     environment:
       - P2P_NETWORK=private
@@ -33,7 +33,7 @@ services:
       - ./celestia-config/celestia-bridge:/testapp_files
       - celestia_bridge_data:/home/celestia
     entrypoint: /testapp_files/entrypoint.sh
-    command: celestia bridge start --p2p.network private --core.ip celestia-validator --rpc.addr 0.0.0.0 --rpc.port 26658 --keyring.keyname bridge
+    command: celestia bridge start --p2p.network private --core.ip celestia-validator --core.port 9090 --rpc.addr 0.0.0.0 --rpc.port 26658 --keyring.keyname bridge
     ports:
       - "127.0.0.1:26659:26658"
       - "127.0.0.1:2122:2121"
@@ -53,15 +53,15 @@ services:
     networks:
       - celestia-network
 
-#  anvil:
-#    image: ghcr.io/foundry-rs/foundry:v1.2.3
-#    container_name: anvil
-#    command: >
-#      anvil --host 0.0.0.0 --port 8545
-#            --chain-id 31337 --block-time 1
-#    ports:
-#      - "8545:8545"
-#    networks: [ celestia-network ]
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.2.3
+    container_name: anvil
+    command: >
+      anvil --host 0.0.0.0 --port 8545
+            --chain-id 31337 --block-time 1
+    ports:
+      - "8545:8545"
+    networks: [ celestia-network ]
 
 volumes:
   celestia_validator_data:
