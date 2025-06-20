@@ -12,6 +12,9 @@ use alloy::sol;
 use celestia_rpc::Client as CelestiaClient;
 use rstest::*;
 use std::str::FromStr;
+use test_toolkit::blobstream::get_blobstream_address;
+use test_toolkit::contracts::Blobstream0;
+use test_toolkit::contracts::Blobstream0::Blobstream0Instance;
 
 sol!(
     #[sol(rpc)]
@@ -22,6 +25,7 @@ sol!(
 pub struct TestEnv {
     pub provider: DynProvider,
     pub counter_contract: CounterInstance<(), DynProvider>,
+    pub blobstream_contract: Blobstream0Instance<(), DynProvider>,
     pub celestia_client: CelestiaClient,
 }
 
@@ -50,6 +54,9 @@ pub async fn test_env() -> TestEnv {
         .expect("Failed to connect to Anvil")
         .erased();
 
+    let blobstream_address = get_blobstream_address();
+    // let blobstream_address = address!("0x68B1D87F95878fE05B998F19b66F4baba5De1aed");
+    let blobstream_contract = Blobstream0::new(blobstream_address, provider.clone());
     let counter_contract = deploy_counter(provider.clone()).await;
 
     let celestia_url = "http://localhost:26659";
@@ -63,6 +70,7 @@ pub async fn test_env() -> TestEnv {
 
     TestEnv {
         provider,
+        blobstream_contract,
         counter_contract,
         celestia_client,
     }

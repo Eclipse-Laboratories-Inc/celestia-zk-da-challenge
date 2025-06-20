@@ -9,8 +9,13 @@ alloy = { workspace = true }
 celestia-rpc = { workspace = true }
 celestia-types = { workspace = true }
 rstest = "0.25"
+test-toolkit = { workspace = true }
 tokio = { workspace = true }
 
 [[test]]
 name = "test-deployment"
 path = "test_deployment.rs"
+
+[[test]]
+name = "test-valid-index"
+path = "test_valid_index.rs"

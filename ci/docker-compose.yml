@@ -80,7 +80,7 @@ services:
       PRIVATE_KEY_HEX: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       TM_BLOCK_HEIGHT: "2"
       MIN_BATCH_SIZE: "1"
-      BATCH_SIZE: "2"
+      BATCH_SIZE: "4"
       TENDERMINT_RPC: "http://celestia-validator:26657"
       RUST_LOG: "info"
       RISC0_DEV_MODE: "true"

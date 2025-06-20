@@ -64,6 +64,6 @@ async fn celestia_submit_blob(#[future] test_env: TestEnv) {
         .blob_submit(&[blob], TxConfig::default())
         .await
         .expect("failed to submit blob");
-    
+
     println!("blob submitted at height: {}", height);
 }

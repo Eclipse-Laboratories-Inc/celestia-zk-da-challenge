@@ -2528,6 +2528,7 @@ dependencies = [
  "celestia-rpc 0.10.0",
  "celestia-types 0.11.0",
  "rstest",
+ "test-toolkit",
  "tokio",
 ]
 
@@ -6747,6 +6748,22 @@ dependencies = [
  "serde_bytes",
  "subtle-encoding",
  "time",
+]
+
+[[package]]
+name = "test-toolkit"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-contract",
+ "anyhow",
+ "bincode",
+ "celestia-rpc 0.10.0",
+ "celestia-types 0.11.0",
+ "futures-util",
+ "log",
+ "tokio",
+ "toolkit",
 ]
 
 [[package]]
