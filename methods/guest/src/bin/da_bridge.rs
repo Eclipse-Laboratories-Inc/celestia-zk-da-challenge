@@ -175,6 +175,11 @@ fn main() {
     // header provided in the input.
     let evm_env = input.into_env().with_chain_spec(&ETH_SEPOLIA_CHAIN_SPEC);
 
+    // Extract the index_blob to compute its hash for the journal
+    let da_guest_data: DaFraudGuestData = bincode::deserialize(&serialized_da_guest_data)
+        .expect("failed to deserialize guest data");
+    let index_blob = da_guest_data.index_blob;
+
     match check_da_challenge(&evm_env, serialized_da_guest_data) {
         Ok(()) => panic!("the specified blob is available, DA challenge failed"),
         Err(DaGuestError::Input(err)) => {
@@ -183,8 +188,14 @@ fn main() {
         Err(DaGuestError::Fraud(err)) => env::log(&format!("DA challenge success: {err}")),
     }
 
-    // Commit the block hash and number used when deriving `view_call_env` to the journal.
+    // Compute the index blob hash from the SpanSequence
+    // Hash the serialized SpanSequence to get a deterministic identifier
+    let index_blob_serialized = bincode::serialize(&index_blob).expect("failed to serialize index_blob");
+    let index_blob_hash = alloy_primitives::keccak256(&index_blob_serialized);
+
+    // Commit the index blob hash and Steel commitment to the journal
     let journal = Journal {
+        indexBlobHash: index_blob_hash,
         commitment: evm_env.into_commitment(),
     };
     env::commit_slice(&journal.abi_encode());

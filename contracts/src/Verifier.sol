@@ -46,7 +46,7 @@ struct IndexBlob {
     BlobCommitment[] commitments;
 }
 
-struct Commitment {
+struct BlobCommitmentInfo {
     uint256 commitment;
     uint256 blockHeight;
     uint256 namespace;
@@ -58,6 +58,17 @@ struct ChallengeProof {
     bytes32 imageId;
     IBlobstream.BlobstreamProof blobstreamProof;
     bytes32 dataRootTupleRoot;
+}
+
+struct SteelCommitment {
+    uint256 id;
+    bytes32 digest;
+    bytes32 configID;
+}
+
+struct Journal {
+    bytes32 indexBlobHash;
+    SteelCommitment commitment;
 }
 
 contract Verifier {
@@ -94,7 +105,9 @@ contract Verifier {
     /// ZK proof validates the Steel commitment from the guest program
     function challengeIndexBlob(
         bytes32 indexBlobHash,
-        bytes calldata journalData,
+        uint256 commitmentId,
+        bytes32 commitmentDigest,
+        bytes32 commitmentConfigId,
         ChallengeProof calldata proof
     ) external returns (bool) {
         if (proof.imageId != INDEX_BLOB_EXCLUSION_IMAGE_ID) {
@@ -103,8 +116,17 @@ contract Verifier {
         
         _validateChallenge(indexBlobHash, proof);
         
-        // Verify the proof with the journal data from the guest program
-        _verifyProof(proof.seal, proof.imageId, journalData);
+        // Construct the journal deterministically from the commitment components and indexBlobHash
+        // This ensures the ZK proof is actually proving exclusion of the specific blob using the specified commitment
+        bytes memory expectedJournal = abi.encode(Journal({
+            indexBlobHash: indexBlobHash,
+            commitment: SteelCommitment({
+                id: commitmentId,
+                digest: commitmentDigest,
+                configID: commitmentConfigId
+            })
+        }));
+        _verifyProof(proof.seal, proof.imageId, expectedJournal);
         
         emit IndexBlobChallenged(indexBlobHash);
         return true;

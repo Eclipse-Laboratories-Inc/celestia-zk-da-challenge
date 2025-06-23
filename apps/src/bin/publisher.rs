@@ -30,7 +30,7 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 use tokio::task;
 use toolkit::blobstream::{BinaryMerkleProof, DataRootTuple, IDAOracle};
-use toolkit::journal::Journal;
+// Remove this import to avoid conflict with generated Journal struct from sol! macro
 use toolkit::{
     eds_index_to_ods, BlobIndex, BlobProofData, BlobstreamAttestation,
     BlobstreamAttestationAndRowProof, DaFraudGuestData, SpanSequence,
@@ -427,9 +427,9 @@ async fn main() -> Result<()> {
     let receipt = prove_info.receipt;
     let journal = &receipt.journal.bytes;
 
-    // Decode and log the commitment
-    let journal = Journal::abi_decode(journal, true).context("invalid journal")?;
-    log::debug!("Steel commitment: {:?}", journal.commitment);
+    // Decode and log the commitment using the toolkit Journal struct for debugging
+    let toolkit_journal = toolkit::journal::Journal::abi_decode(journal, true).context("invalid journal")?;
+    log::debug!("Steel commitment: {:?}", toolkit_journal.commitment);
 
     // ABI encode the seal.
     let seal = encode_seal(&receipt).context("invalid receipt")?;
@@ -441,8 +441,8 @@ async fn main() -> Result<()> {
     let contract_image_id = Digest::from(contract.getIndexBlobExclusionImageId().call().await?._0.0);
     ensure!(contract_image_id == DA_BRIDGE_ID.into());
 
-    // For this test, we'll use placeholder values that would need to be computed properly in a real implementation
-    let index_blob_hash = B256::from([0u8; 32]); 
+    // Extract the index blob hash from the journal (computed by the guest program)
+    let index_blob_hash = toolkit_journal.indexBlobHash;
     
     // Create the challenge proof struct  
     let challenge_proof = ChallengeProof {
@@ -459,12 +459,18 @@ async fn main() -> Result<()> {
     };
 
     // The guest program outputs a Journal with Steel commitment
-    // Pass the actual journal data from the proof to the contract
+    // Extract the commitment components to pass separately for verification
     log::info!(
         "Sending Tx calling challengeIndexBlob Function of {:#}...",
         contract.address()
     );
-    let call_builder = contract.challengeIndexBlob(index_blob_hash, receipt.journal.bytes.into(), challenge_proof);
+    let call_builder = contract.challengeIndexBlob(
+        index_blob_hash,
+        toolkit_journal.commitment.id,
+        toolkit_journal.commitment.digest,
+        toolkit_journal.commitment.configID,
+        challenge_proof
+    );
     log::debug!("Send {} {}", contract.address(), call_builder.calldata());
     let pending_tx = call_builder.send().await?;
     let tx_hash = *pending_tx.tx_hash();

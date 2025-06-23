@@ -47,7 +47,7 @@ EOF
 
 # Build methods
 echo "Building ZK methods..."
-unset ARGV0
+unset ARGV0 # useful for agents
 cargo build --package da-bridge-methods
 
 # Deploy Verifier contract
