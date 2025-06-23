@@ -30,7 +30,7 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 use tokio::task;
 use toolkit::blobstream::{BinaryMerkleProof, DataRootTuple, IDAOracle};
-use toolkit::journal::Journal;
+use toolkit::journal::Journal as ToolkitJournal;
 use toolkit::{
     eds_index_to_ods, BlobIndex, BlobProofData, BlobstreamAttestation,
     BlobstreamAttestationAndRowProof, DaFraudGuestData, SpanSequence,
@@ -428,7 +428,7 @@ async fn main() -> Result<()> {
     let journal = &receipt.journal.bytes;
 
     // Decode and log the commitment
-    let journal = Journal::abi_decode(journal, true).context("invalid journal")?;
+    let journal = ToolkitJournal::abi_decode(journal, true).context("invalid journal")?;
     log::debug!("Steel commitment: {:?}", journal.commitment);
 
     // ABI encode the seal.
@@ -442,7 +442,6 @@ async fn main() -> Result<()> {
     ensure!(contract_image_id == DA_BRIDGE_ID.into());
 
     // For this test, we'll use placeholder values that would need to be computed properly in a real implementation
-    let index_blob_hash = B256::from([0u8; 32]); 
     
     // Create the challenge proof struct  
     let challenge_proof = ChallengeProof {
@@ -459,12 +458,18 @@ async fn main() -> Result<()> {
     };
 
     // The guest program outputs a Journal with Steel commitment
-    // Pass the actual journal data from the proof to the contract
+    // Extract the steel commitment details from the journal
     log::info!(
         "Sending Tx calling challengeIndexBlob Function of {:#}...",
         contract.address()
     );
-    let call_builder = contract.challengeIndexBlob(index_blob_hash, receipt.journal.bytes.into(), challenge_proof);
+    let call_builder = contract.challengeIndexBlob(
+        journal.indexBlobHash.into(),
+        journal.commitment.id,
+        journal.commitment.digest,
+        journal.commitment.configID,
+        challenge_proof
+    );
     log::debug!("Send {} {}", contract.address(), call_builder.calldata());
     let pending_tx = call_builder.send().await?;
     let tx_hash = *pending_tx.tx_hash();

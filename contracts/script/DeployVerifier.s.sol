@@ -11,6 +11,10 @@ contract DeployVerifier is Script {
     // Use the ImageID from the generated methods
     bytes32 constant VERIFIER_IMAGE_ID = ImageID.DA_BRIDGE_ID;
     
+    // Real Blobstream contract addresses for different networks
+    address constant REAL_BLOBSTREAM_MAINNET = 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0;
+    address constant REAL_BLOBSTREAM_SEPOLIA = 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0; // Update if different
+    
     // RISC Zero Verifier addresses
     address constant RISC0_VERIFIER_MAINNET = 0x8EaB2D97Dfce405A1692a21b3ff3A172d593D319;
     address constant RISC0_VERIFIER_SEPOLIA = 0x925d8331ddc0a1F0d96E68CF073DFE1d92b69187;
@@ -19,26 +23,36 @@ contract DeployVerifier is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
         
-        // Deploy mock contracts for testing
+        // Deploy MockGateway (needed for all deployments)
         MockGateway mockGateway = new MockGateway();
-        MockBlobstream mockBlobstream = new MockBlobstream();
         
-        // Choose RISC0 verifier based on chain ID
+        // Choose RISC0 verifier and Blobstream based on chain ID
         address risc0Verifier;
+        address blobstream;
+        bool isRealNetwork = false;
+        
         if (block.chainid == 1) {
+            // Mainnet
             risc0Verifier = RISC0_VERIFIER_MAINNET;
+            blobstream = REAL_BLOBSTREAM_MAINNET;
+            isRealNetwork = true;
         } else if (block.chainid == 11155111) {
+            // Sepolia
             risc0Verifier = RISC0_VERIFIER_SEPOLIA;
+            blobstream = REAL_BLOBSTREAM_SEPOLIA;
+            isRealNetwork = true;
         } else {
-            // For local testing, deploy a mock verifier
+            // Local testing - deploy mocks
             risc0Verifier = address(new MockRiscZeroVerifier());
+            MockBlobstream mockBlobstream = new MockBlobstream();
+            blobstream = address(mockBlobstream);
         }
         
         // Deploy the main verifier contract
         Verifier verifier = new Verifier(
             address(mockGateway),
             risc0Verifier,
-            address(mockBlobstream),
+            blobstream,
             VERIFIER_IMAGE_ID,
             VERIFIER_IMAGE_ID
         );
@@ -48,10 +62,15 @@ contract DeployVerifier is Script {
         // Log deployment addresses
         console.log("Deployed contracts:");
         console.log("MockGateway:", address(mockGateway));
-        console.log("MockBlobstream:", address(mockBlobstream));
+        if (isRealNetwork) {
+            console.log("Real Blobstream (existing):", blobstream);
+        } else {
+            console.log("MockBlobstream:", blobstream);
+        }
         console.log("RISC0 Verifier:", risc0Verifier);
         console.log("Deployed Verifier to", address(verifier));
         console.log("Chain ID:", block.chainid);
+        console.log("Network type:", isRealNetwork ? "Real" : "Test/Local");
     }
 }
 

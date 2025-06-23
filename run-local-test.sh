@@ -58,7 +58,7 @@ if [ ! -d "lib/forge-std" ]; then
     forge install
 fi
 
-DEPLOY_OUTPUT=$(PRIVATE_KEY=$ETH_WALLET_PRIVATE_KEY forge script script/DeployVerifierReal.s.sol:DeployVerifierReal \
+DEPLOY_OUTPUT=$(PRIVATE_KEY=$ETH_WALLET_PRIVATE_KEY forge script script/DeployVerifier.s.sol:DeployVerifier \
     --rpc-url http://localhost:8545 \
     --broadcast 2>&1)
 
