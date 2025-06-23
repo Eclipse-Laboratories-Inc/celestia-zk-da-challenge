@@ -36,23 +36,6 @@ interface IBlobstream {
     ) external view returns (bool verified);
 }
 
-struct BlobCommitment {
-    uint256 commitment;
-    uint256 block_height;
-}
-
-struct IndexBlob {
-    uint256 namespace;
-    BlobCommitment[] commitments;
-}
-
-struct BlobCommitmentInfo {
-    uint256 commitment;
-    uint256 blockHeight;
-    uint256 namespace;
-    bool exists;
-}
-
 struct ChallengeProof {
     bytes seal;
     bytes32 imageId;
@@ -116,8 +99,6 @@ contract Verifier {
         
         _validateChallenge(indexBlobHash, proof);
         
-        // Construct the journal deterministically from the commitment components and indexBlobHash
-        // This ensures the ZK proof is actually proving exclusion of the specific blob using the specified commitment
         bytes memory expectedJournal = abi.encode(Journal({
             indexBlobHash: indexBlobHash,
             commitment: SteelCommitment({
