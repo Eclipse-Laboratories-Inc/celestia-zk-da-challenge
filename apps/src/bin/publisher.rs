@@ -18,7 +18,7 @@ use risc0_steel::alloy::{
     network::EthereumWallet,
     signers::local::PrivateKeySigner,
     sol,
-    sol_types::{SolCall, SolValue},
+    sol_types::SolValue,
 };
 use risc0_steel::{
     ethereum::{EthBlockHeader, EthEvmEnv, ETH_SEPOLIA_CHAIN_SPEC},
@@ -41,7 +41,7 @@ use toolkit::constants::BLOBSTREAM_ADDRESS;
 
 sol!(
     #[sol(rpc, all_derives)]
-    "../contracts/src/ICounter.sol"
+    "../contracts/src/Verifier.sol"
 );
 
 /// Simple program to create a proof to increment the Counter contract.
@@ -76,9 +76,13 @@ struct CliArgs {
     #[arg(long, env = "CELESTIA_RPC_URL")]
     celestia_rpc_url: Url,
 
-    /// Address of the Blobstream / counter verifier contract.
+    /// Celestia auth token
+    #[arg(long, env = "CELESTIA_AUTH_TOKEN")]
+    celestia_auth_token: Option<String>,
+
+    /// Address of the Verifier contract.
     #[arg(long)]
-    counter_address: Address,
+    verifier_address: Address,
 
     /// Sequence of spans pointing to the index blob.
     #[arg(long)]
@@ -358,9 +362,7 @@ async fn main() -> Result<()> {
     // TODO: import hana's find_data_commitment() into toolkit
     let ro_provider = RootProvider::connect(args.eth_rpc_url.as_str()).await?;
 
-    let celestia_url = std::env::var("CELESTIA_MOCHA_LIGHT_NODE_URL")
-        .with_context(|| "CELESTIA_MOCHA_LIGHT_NODE_URL must be set")?;
-    let celestia_client = CelestiaClient::new(&celestia_url, None).await?;
+    let celestia_client = CelestiaClient::new(&args.celestia_rpc_url.to_string(), args.celestia_auth_token.as_deref()).await?;
 
     let index_blob: SpanSequence = args.index_blob;
     let challenged_blob: SpanSequence = args.challenged_blob;
@@ -432,20 +434,37 @@ async fn main() -> Result<()> {
     // ABI encode the seal.
     let seal = encode_seal(&receipt).context("invalid receipt")?;
 
-    // Create an alloy instance of the Counter contract.
-    let contract = ICounter::new(args.counter_address, &eth_provider);
+    // Create an alloy instance of the Verifier contract.
+    let contract = Verifier::new(args.verifier_address, &eth_provider);
 
-    // Call ICounter::imageID() to check that the contract has been deployed correctly.
-    let contract_image_id = Digest::from(contract.imageID().call().await?._0.0);
+    // Call Verifier::getIndexBlobExclusionImageId() to check that the contract has been deployed correctly.
+    let contract_image_id = Digest::from(contract.getIndexBlobExclusionImageId().call().await?._0.0);
     ensure!(contract_image_id == DA_BRIDGE_ID.into());
 
-    // Call the increment function of the contract and wait for confirmation.
+    // For this test, we'll use placeholder values that would need to be computed properly in a real implementation
+    let index_blob_hash = B256::from([0u8; 32]); 
+    
+    // Create the challenge proof struct  
+    let challenge_proof = ChallengeProof {
+        seal: seal.into(),
+        imageId: B256::from_slice(Digest::from(DA_BRIDGE_ID).as_bytes()),
+        blobstreamProof: IBlobstream::BlobstreamProof {
+            height: U256::from(0),
+            dataRoot: B256::from([0u8; 32]),
+            sideNodes: vec![],
+            key: U256::from(0),
+            numLeaves: U256::from(0),
+        },
+        dataRootTupleRoot: B256::from([0u8; 32]),
+    };
+
+    // The guest program outputs a Journal with Steel commitment
+    // Pass the actual journal data from the proof to the contract
     log::info!(
-        "Sending Tx calling {} Function of {:#}...",
-        ICounter::incrementCall::SIGNATURE,
+        "Sending Tx calling challengeIndexBlob Function of {:#}...",
         contract.address()
     );
-    let call_builder = contract.increment(receipt.journal.bytes.into(), seal.into());
+    let call_builder = contract.challengeIndexBlob(index_blob_hash, receipt.journal.bytes.into(), challenge_proof);
     log::debug!("Send {} {}", contract.address(), call_builder.calldata());
     let pending_tx = call_builder.send().await?;
     let tx_hash = *pending_tx.tx_hash();

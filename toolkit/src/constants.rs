@@ -1,3 +1,2 @@
-/// Address of the Blobstream contract.µ
-/// Source: https://docs.celestia.org/how-to-guides/blobstream#deployed-contracts.
-pub const BLOBSTREAM_ADDRESS: &str = "0xF0c6429ebAB2e7DC6e05DaFB61128bE21f13cb1e";
+/// Address of the Blobstream contract.
+pub const BLOBSTREAM_ADDRESS: &str = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
