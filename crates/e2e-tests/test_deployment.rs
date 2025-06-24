@@ -3,7 +3,6 @@
 mod fixtures;
 
 use crate::fixtures::{test_env, TestEnv};
-use alloy::primitives::U256;
 use alloy::providers::Provider;
 use rstest::rstest;
 use celestia_rpc::{BlobClient, HeaderClient, TxConfig};
@@ -11,32 +10,22 @@ use celestia_types::{AppVersion, Blob, nmt::Namespace};
 
 #[rstest]
 #[tokio::test]
-async fn contract_was_deployed(#[future] test_env: TestEnv) {
+async fn blobstream_contract_was_deployed(#[future] test_env: TestEnv) {
     let test_env = test_env.await;
-
-    let counter_contract = &test_env.counter_contract;
     let provider = &test_env.provider;
+    let blobstream_contract = &test_env.blobstream_contract;
 
-    // 1) There must be byte-code at the deployed address.
+    // There must be byte-code at the deployed blobstream address.
     let code = provider
-        .get_code_at(*counter_contract.address()) // latest block
+        .get_code_at(*blobstream_contract.address()) // latest block
         .await
         .expect("RPC getCode failed");
 
     assert!(
         !code.is_empty(),
-        "no byte-code found at {:?}",
-        counter_contract.address()
+        "no byte-code found at blobstream address {:?}",
+        blobstream_contract.address()
     );
-
-    // 2) The public getter should return its default value (0).
-    let stored = counter_contract
-        .counter()
-        .call()
-        .await
-        .expect("contract call failed");
-
-    assert_eq!(stored._0, U256::from(0));
 }
 
 #[rstest]

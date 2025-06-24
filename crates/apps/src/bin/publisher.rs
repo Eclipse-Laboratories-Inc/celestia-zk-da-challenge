@@ -41,10 +41,10 @@ use toolkit::constants::BLOBSTREAM_ADDRESS;
 
 sol!(
     #[sol(rpc, all_derives)]
-    "../contracts/src/Verifier.sol"
+    "../../contracts/src/Verifier.sol"
 );
 
-/// Simple program to create a proof to increment the Counter contract.
+/// Simple program to create a DA fraud proof for the Verifier contract.
 #[derive(Parser)]
 struct CliArgs {
     /// Ethereum private key

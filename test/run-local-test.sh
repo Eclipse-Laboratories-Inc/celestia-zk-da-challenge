@@ -40,7 +40,7 @@ if [ -z "$BLOBSTREAM_ADDRESS" ]; then
     BLOBSTREAM_ADDRESS="0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
 fi
 
-cat > toolkit/src/constants.rs << EOF
+cat > crates/toolkit/src/constants.rs << EOF
 /// Address of the Blobstream contract.
 pub const BLOBSTREAM_ADDRESS: &str = "$BLOBSTREAM_ADDRESS";
 EOF

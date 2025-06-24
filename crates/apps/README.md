@@ -2,7 +2,7 @@
 
 ## Publisher
 
-The [`publisher` CLI][publisher], is an example application that sends an off-chain proof request to the RISC Zero zkVM, and publishes the received proofs to your deployed [Counter] contract.
+The [`publisher` CLI][publisher], is an example application that sends an off-chain proof request to the RISC Zero zkVM, and publishes DA fraud proofs to verifier contracts.
 
 ### Usage
 
@@ -15,7 +15,7 @@ cargo run --bin publisher
 ```text
 $ cargo run --bin publisher -- --help
 
-Usage: publisher [OPTIONS] --eth-wallet-private-key <ETH_WALLET_PRIVATE_KEY> --eth-rpc-url <ETH_RPC_URL> --counter <COUNTER> --token-contract <TOKEN_CONTRACT> --account <ACCOUNT>
+Usage: publisher [OPTIONS] --eth-wallet-private-key <ETH_WALLET_PRIVATE_KEY> --eth-rpc-url <ETH_RPC_URL> --verifier-address <VERIFIER_ADDRESS> --index-blob <INDEX_BLOB> --challenged-blob <CHALLENGED_BLOB>
 
 Options:
       --eth-wallet-private-key <ETH_WALLET_PRIVATE_KEY>
@@ -35,18 +35,17 @@ Options:
           
           [env: BEACON_API_URL=]
 
-      --counter-address <COUNTER_ADDRESS>
-          Address of the Counter verifier contract
+      --verifier-address <VERIFIER_ADDRESS>
+          Address of the DA fraud proof verifier contract
 
-      --token-contract <TOKEN_CONTRACT>
-          Address of the ERC20 token contract
+      --index-blob <INDEX_BLOB>
+          Sequence of spans pointing to the index blob
 
-      --account <ACCOUNT>
-          Address to query the token balance of
+      --challenged-blob <CHALLENGED_BLOB>
+          Sequence of spans pointing to the missing blob
 
   -h, --help
           Print help (see a summary with '-h')
 ```
 
 [publisher]: ./src/bin/publisher.rs
-[Counter]: ../contracts/src/Counter.sol

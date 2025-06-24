@@ -12,6 +12,7 @@ celestia-types = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 dotenv = { workspace = true }
 da-bridge-methods = { workspace = true }
+hex = { workspace = true }
 hana-blobstream = { workspace = true }
 hana-proofs = { workspace = true }
 log = { workspace = true }
