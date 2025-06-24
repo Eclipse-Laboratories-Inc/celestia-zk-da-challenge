@@ -24,7 +24,7 @@ You will also need:
 # A previously deployed counter, which will not work because of the guest image ID check.
 export COUNTER_ADDRESS=0x5CcC5C91357e68c644448f05e0027cC753c37711
 
-RUST_LOG=info RISC0_DEV_MODE=1 cargo run --package apps --bin publisher -- \
+RUST_LOG=info RISC0_DEV_MODE=1 cargo run --package host --bin publisher -- \
     --eth-wallet-private-key ${ETH_PRIVATE_KEY} \
     --eth-rpc-url ${SEPOLIA_RPC_URL} \
     --celestia-rpc-url ${MOCHA_RPC_URL} \

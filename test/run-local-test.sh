@@ -80,7 +80,7 @@ sleep 15
 echo "Running fraud proof test..."
 echo "Note: Expected to fail because blob IS available"
 
-RUST_LOG=info RISC0_DEV_MODE=1 cargo run --package apps --bin publisher -- \
+RUST_LOG=info RISC0_DEV_MODE=1 cargo run --package host --bin publisher -- \
     --eth-wallet-private-key $ETH_WALLET_PRIVATE_KEY \
     --eth-rpc-url $ETH_RPC_URL \
     --celestia-rpc-url $CELESTIA_MOCHA_LIGHT_NODE_URL \
