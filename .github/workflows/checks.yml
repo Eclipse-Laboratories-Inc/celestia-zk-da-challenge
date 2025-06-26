@@ -1,0 +1,102 @@
+name: Compile and run tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  rust-checks:
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_TERM_COLOR: always
+      FOUNDRY_VERSION: "1.0.0"
+      RISC0_RUST: "1.85.0"
+      RISC0_VERSION: "2.0.1"
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Cache Rust + RISC Zero toolchains
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup                # rustup tool-chains (includes risc0-* tool-chain)
+            ~/.cache/rzup            # rzup downloads
+            ~/.cargo/bin             # cargo-risczero, r0vm, ...
+            ~/.foundry
+            ~/.risc0
+          key: ${{ runner.os }}-toolchain-${{ env.RISC0_RUST }}-${{ env.RISC0_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-toolchain-
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      - name: Install Foundry toolchain (forge, cast, anvil)
+        run: |
+          curl -L https://foundry.paradigm.xyz | bash
+          $HOME/.config/.foundry/bin/foundryup --version
+          $HOME/.config/.foundry/bin/foundryup --install $FOUNDRY_VERSION
+          echo "$HOME/.config/.foundry/bin" >> "$GITHUB_PATH"
+
+      - name: Install stable Rust + Clippy (host)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: clippy
+          profile: minimal
+
+      # install RISC Zero tool-chain
+      - name: Install rzup
+        run: |
+          curl -L https://risczero.com/install | bash
+          echo "$HOME/.risc0/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned RISC Zero components
+        run: |
+          rzup install rust $RISC0_RUST
+          rzup install r0vm $RISC0_VERSION
+          rzup install cargo-risczero $RISC0_VERSION
+
+      - name: Cache Cargo registry + index
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+
+      - name: Cache target/ dir
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-${{ env.RISC0_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-target-
+
+      # Cannot compile the tests and test-toolkit at this stage because of the Counter.sol -> guest ID dependency
+      - name: Cargo build (host + guest programs)
+        run: cargo build --package cli --all-targets --all-features
+
+      - name: Compile smart contracts
+        run: forge build
+
+      - name: Cargo build (all targets)
+        run: cargo build --workspace
+
+      - name: Clippy (host)
+        run: RISC0_SKIP_BUILD=1 cargo clippy --workspace -- -D warnings
+
+      - name: Clippy (guest)
+        run: bash scripts/clippy-guest.sh

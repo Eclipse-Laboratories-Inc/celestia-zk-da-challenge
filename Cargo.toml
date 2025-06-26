@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["apps", "methods", "toolkit"]
+members = ["crates/cli", "crates/methods", "crates/e2e-tests", "crates/test-toolkit", "crates/toolkit"]
 exclude = ["lib"]
 
 [workspace.package]
@@ -18,24 +18,29 @@ risc0-build = { version = "2.0", features = ["docker"] }
 risc0-zkvm = { version = "2.0", features = ["unstable"] }
 risc0-zkp = { version = "2.0", default-features = false }
 
-alloy = { version = "0.12", features = ["full"] }
+alloy = { version = "0.12", features = ["full", "provider-anvil-node"] }
 alloy-primitives = { version = "0.8", features = ["rlp", "serde", "std"] }
+alloy-contract = { version = "0.12.6" }
 alloy-sol-types = { version = "0.8" }
 anyhow = { version = "1.0.75" }
 bincode = { version = "1.3" }
 celestia-rpc = { git = "https://github.com/Eclipse-Laboratories-Inc/lumina", rev = "90384f5302d0dc677ac3e8c00db7c229a27aa4a1" }
 celestia-types = { git = "https://github.com/Eclipse-Laboratories-Inc/lumina", rev = "90384f5302d0dc677ac3e8c00db7c229a27aa4a1" }
 clap = { version = "4.5" }
+cli = { path = "crates/cli" }
 dotenv = { version = "0.15.0" }
+futures-util = { version = "0.3.31" }
 hana-blobstream = { git = "https://github.com/Eclipse-Laboratories-Inc/hana", branch = "od/fix-deps-and-add-traits" }
 hana-proofs = { git = "https://github.com/Eclipse-Laboratories-Inc/hana", branch = "od/fix-deps-and-add-traits" }
 hex = { version = "0.4" }
-da-bridge-methods = { path = "./methods" }
+da-challenge-guest = { path = "crates/methods" }
 log = { version = "0.4" }
+rstest = { version = "0.25.0" }
 serde = { version = "1.0", features = ["derive", "std"] }
+test-toolkit = { path = "crates/test-toolkit" }
 thiserror = { version = "2.0.12" }
 tokio = { version = "1.39", features = ["full"] }
-toolkit = { path = "./toolkit" }
+toolkit = { path = "crates/toolkit" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = { version = "2.5" }
 

@@ -191,14 +191,14 @@ using [PublicNode](https://ethereum.publicnode.com/)) and run an end-to-end test
 
 [jq]: https://jqlang.github.io/jq/
 
-[methods]: ./methods/
+[methods]: crates/methods/
 
 [tested]: ./README.md#run-the-tests
 
 [0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0]: https://sepolia.etherscan.io/address/0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0#code
 
-[methods/guest/src/bin/balance_of.rs]: methods/guest/src/bin/da_bridge.rs
+[methods/guest/src/bin/balance_of.rs]: crates/methods/guest/src/bin/da_challenge_guest.rs
 
-[apps/src/bin/publisher.rs]: ./apps/src/bin/publisher.rs
+[apps/src/bin/publisher.rs]: crates/cli/src/bin/publisher.rs
 
 [Docker]: https://docs.docker.com/get-docker/
