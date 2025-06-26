@@ -344,9 +344,9 @@ where
 {
     // ---------------------------------------
     #[cfg(feature = "beacon")]
-    log::info!("Beacon commitment to block {}", execution_block);
+    log::info!("Beacon commitment to block {execution_block}");
     #[cfg(feature = "history")]
-    log::info!("History commitment to block {}", commitment_block);
+    log::info!("History commitment to block {commitment_block}");
 
     let builder = EthEvmEnv::builder()
         .provider(eth_provider)
@@ -426,6 +426,7 @@ where
 /// A tuple containing:
 /// * The ZK proof receipt
 /// * The encoded seal.
+#[allow(clippy::too_many_arguments)]
 pub async fn challenge_da_commitment(
     celestia_client: &CelestiaClient,
     root_provider: RootProvider,

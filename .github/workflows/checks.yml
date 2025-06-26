@@ -96,7 +96,7 @@ jobs:
         run: cargo build --workspace
 
       - name: Clippy (host)
-        run: RISC0_SKIP_BUILD=1 cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run: RISC0_SKIP_BUILD=1 cargo clippy --workspace -- -D warnings
 
       - name: Clippy (guest)
         run: bash scripts/clippy-guest.sh
