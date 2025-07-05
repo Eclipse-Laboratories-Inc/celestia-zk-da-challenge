@@ -3,6 +3,7 @@ pub mod constants;
 pub mod errors;
 pub mod journal;
 
+use alloy_primitives::Address;
 use celestia_types::consts::appconsts::SHARE_SIZE;
 use celestia_types::nmt::NamespacedHash;
 use celestia_types::{AppVersion, Blob, MerkleProof, Share, ShareProof};
@@ -139,6 +140,18 @@ impl BlobProofData {
             .values()
             .flat_map(|share_proof| share_proof.shares())
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum BlobstreamImpl {
+    Sp1,
+    R0,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BlobstreamInfo {
+    pub address: Address,
+    pub implementation: BlobstreamImpl,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

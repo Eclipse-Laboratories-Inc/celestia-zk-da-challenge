@@ -1,7 +1,7 @@
 #![allow(unused_doc_comments)]
 #![no_main]
 
-use alloy_primitives::{Address, B256, U256};
+use alloy_primitives::{B256, U256};
 use alloy_sol_types::SolValue;
 use celestia_types::hash::Hash;
 use celestia_types::{AppVersion, MerkleProof};
@@ -10,15 +10,15 @@ use risc0_steel::ethereum::EthBlockHeader;
 use risc0_steel::{ethereum::EthEvmInput, Commitment, Contract, EvmEnv, StateDb};
 use risc0_zkvm::guest::env;
 use toolkit::blobstream::{
-    BinaryMerkleProof, Blobstream0,
-    DataRootTuple, IDAOracle,
+    BinaryMerkleProof, Blobstream0, DataRootTuple, IDAOracle, SP1Blobstream,
 };
+use toolkit::errors::{compute_ods_width_from_row_proof, DaFraud, DaGuestError, InputError};
 use toolkit::journal::Journal;
 use toolkit::{
     share_proof_start_index_ods, BlobIndex, BlobProofData, BlobstreamAttestation,
-    BlobstreamAttestationAndRowProof, DaChallengeGuestData, SpanSequence,
+    BlobstreamAttestationAndRowProof, BlobstreamImpl, BlobstreamInfo, DaChallengeGuestData,
+    SpanSequence,
 };
-use toolkit::errors::{compute_ods_width_from_row_proof, DaFraud, DaGuestError, InputError};
 
 risc0_zkvm::guest::entry!(main);
 
@@ -43,9 +43,19 @@ fn verify_blobstream_attestation(
 
 fn get_current_blobstream_height(
     blobstream_contract: &Contract<&EvmEnv<StateDb, EthBlockHeader, Commitment>>,
+    blobstream_impl: BlobstreamImpl,
 ) -> u64 {
-    let height_call = Blobstream0::latestHeightCall {};
-    blobstream_contract.call_builder(&height_call).call()._0
+    match blobstream_impl {
+        BlobstreamImpl::Sp1 => {
+            let height_call = SP1Blobstream::latestBlockCall {};
+            blobstream_contract.call_builder(&height_call).call()._0 - 1
+        }
+
+        BlobstreamImpl::R0 => {
+            let height_call = Blobstream0::latestHeightCall {};
+            blobstream_contract.call_builder(&height_call).call()._0
+        }
+    }
 }
 
 fn verify_blobstream_attestation_and_row_proof(
@@ -75,7 +85,7 @@ fn verify_span_sequence_inclusion(
     let ods_size = ods_width * ods_width;
 
     let last_share_index = span_sequence.end_index_ods()?;
-    
+
     env::log(&format!("last_share_index: {}", last_share_index));
 
     if last_share_index > ods_size {
@@ -99,7 +109,7 @@ fn verify_share_proofs(
     blob_proof_data: &BlobProofData,
 ) -> Result<(), DaGuestError> {
     let span_sequence_end = span_sequence.end_index_ods()?;
-    
+
     for share_index in span_sequence.start..span_sequence_end {
         let share_proof = &blob_proof_data.share_proofs[&share_index];
         // Check that the share belongs to the expected Celestia block
@@ -114,13 +124,14 @@ fn verify_share_proofs(
             "invalid share proof start index"
         );
     }
-    
+
     Ok(())
 }
 
 fn check_block_height_bounds(
     span_sequence: SpanSequence,
     blobstream_contract: &Contract<&EvmEnv<StateDb, EthBlockHeader, Commitment>>,
+    blobstream_impl: BlobstreamImpl,
     first_blobstream_attestation: BlobstreamAttestation,
 ) -> Result<(), DaGuestError> {
     // Assert that the proof is for the first Blobstream event by checking the nonce.
@@ -144,13 +155,13 @@ fn check_block_height_bounds(
         .into());
     }
 
-    let max_block_height = get_current_blobstream_height(blobstream_contract);
+    let max_block_height = get_current_blobstream_height(blobstream_contract, blobstream_impl);
     if span_sequence.height > max_block_height {
         return Err(DaFraud::BlockHeightTooLow {
             block_height: span_sequence.height,
             min_block_height,
         }
-            .into());
+        .into());
     }
 
     Ok(())
@@ -158,7 +169,7 @@ fn check_block_height_bounds(
 
 fn check_da_challenge(
     evm_env: &EvmEnv<StateDb, EthBlockHeader, Commitment>,
-    blobstream_address: Address,
+    blobstream_info: BlobstreamInfo,
     serialized_da_guest_data: Vec<u8>,
 ) -> Result<(), DaGuestError> {
     let DaChallengeGuestData {
@@ -169,6 +180,10 @@ fn check_da_challenge(
         first_blobstream_attestation,
     } = bincode::deserialize(&serialized_da_guest_data).expect("failed to deserialize guest data");
 
+    let BlobstreamInfo {
+        address: blobstream_address,
+        implementation: blobstream_impl,
+    } = blobstream_info;
     let blobstream_contract = Contract::new(blobstream_address, evm_env);
 
     // Verify the authenticity of all the provided block proofs.
@@ -186,6 +201,7 @@ fn check_da_challenge(
         check_block_height_bounds(
             index_blob,
             &blobstream_contract,
+            blobstream_impl,
             first_blobstream_attestation,
         )?;
         return verify_span_sequence_inclusion(
@@ -214,6 +230,7 @@ fn check_da_challenge(
             check_block_height_bounds(
                 challenged_blob,
                 &blobstream_contract,
+                blobstream_impl,
                 first_blobstream_attestation,
             )?;
             return verify_span_sequence_inclusion(
@@ -230,15 +247,16 @@ fn main() {
     // Read the input from the guest environment.
     let input: EthEvmInput = env::read();
     let chain_spec: ChainSpec = env::read();
-    let blobstream_address: Address = env::read();
+    let blobstream_info: BlobstreamInfo = env::read();
     let serialized_da_guest_data: Vec<u8> = env::read_frame();
 
     // Converts the input into a `EvmEnv` for execution. The `with_chain_spec` method is used
     // to specify the chain configuration. It checks that the state matches the state root in the
     // header provided in the input.
     let evm_env = input.into_env().with_chain_spec(&chain_spec);
+    let blobstream_address = blobstream_info.address;
 
-    match check_da_challenge(&evm_env, blobstream_address, serialized_da_guest_data) {
+    match check_da_challenge(&evm_env, blobstream_info, serialized_da_guest_data) {
         Ok(()) => panic!("the specified blob is available, DA challenge failed"),
         Err(DaGuestError::Input(err)) => {
             panic!("invalid input: {}", err)

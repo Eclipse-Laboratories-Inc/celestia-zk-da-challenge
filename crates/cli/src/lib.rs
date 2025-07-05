@@ -18,24 +18,27 @@ use risc0_ethereum_contracts::encode_seal;
 use risc0_steel::alloy::contract::private::{
     Provider as PrivateProvider, Transport as PrivateTransport,
 };
+use risc0_steel::alloy::providers::Network;
 use risc0_steel::alloy::{
     sol,
     sol_types::{SolCall, SolValue},
 };
 use risc0_steel::config::ChainSpec;
+use risc0_steel::host::db::{ProofDb, ProviderDb};
+use risc0_steel::host::HostCommit;
 use risc0_steel::{
     ethereum::{EthBlockHeader, EthEvmEnv},
     host::BlockNumberOrTag,
-    Contract, EvmInput,
+    Contract, EvmBlockHeader, EvmEnv, EvmInput,
 };
 use risc0_zkvm::{default_prover, Digest, ExecutorEnv, ProverOpts, Receipt, VerifierContext};
 use std::collections::BTreeMap;
 use tokio::task;
-use toolkit::blobstream::{BinaryMerkleProof, Blobstream0, DataRootTuple, IDAOracle};
+use toolkit::blobstream::{BinaryMerkleProof, Blobstream0, DataRootTuple, IDAOracle, SP1Blobstream};
 use toolkit::journal::Journal;
 use toolkit::{
     BlobIndex, BlobProofData, BlobstreamAttestation, BlobstreamAttestationAndRowProof,
-    DaChallengeGuestData, SpanSequence,
+    BlobstreamImpl, BlobstreamInfo, DaChallengeGuestData, SpanSequence,
 };
 use tracing_subscriber::EnvFilter;
 
@@ -327,6 +330,33 @@ async fn fetch_da_challenge_guest_data(
     })
 }
 
+async fn perform_preflight_blobstream_height_call<
+    C,
+    H: EvmBlockHeader + Clone + Send + 'static,
+    N: Network,
+    P: Provider<N> + 'static,
+>(
+    blobstream_contract: &mut Contract<&mut EvmEnv<ProofDb<ProviderDb<N, P>>, H, HostCommit<C>>>,
+) -> Result<BlobstreamImpl, anyhow::Error> {
+    let latest_height_call = Blobstream0::latestHeightCall {};
+    let result = blobstream_contract
+        .call_builder(&latest_height_call)
+        .call()
+        .await;
+
+    if let Ok(_height) = result {
+        return Ok(BlobstreamImpl::R0);
+    }
+
+    let latest_height_call = SP1Blobstream::latestBlockCall {};
+    blobstream_contract
+        .call_builder(&latest_height_call)
+        .call()
+        .await?;
+
+    Ok(BlobstreamImpl::Sp1)
+}
+
 /// Performs calls to the Blobstream smart contract and fetches the data locally.
 /// Returns an `EvmInput` struct holding the state required for running Blobstream in ZK.
 async fn perform_preflight_calls<'a, I, P>(
@@ -337,7 +367,7 @@ async fn perform_preflight_calls<'a, I, P>(
     execution_block: BlockNumberOrTag,
     #[cfg(any(feature = "beacon", feature = "history"))] beacon_api_url: url::Url,
     #[cfg(feature = "history")] commitment_block: BlockNumberOrTag,
-) -> Result<EvmInput<EthBlockHeader>>
+) -> Result<(EvmInput<EthBlockHeader>, BlobstreamInfo)>
 where
     I: Iterator<Item = &'a BlobstreamAttestation>,
     P: Provider<Ethereum> + 'static,
@@ -362,6 +392,9 @@ where
 
     let mut blobstream_contract = Contract::preflight(blobstream_contract_address, &mut env);
 
+    let blobstream_impl =
+        perform_preflight_blobstream_height_call(&mut blobstream_contract).await?;
+
     for blobstream_attestation in blobstream_attestations {
         let data_root_tuple = DataRootTuple {
             height: U256::from(blobstream_attestation.height),
@@ -383,18 +416,16 @@ where
             .await?;
     }
 
-    let latest_height_call = Blobstream0::latestHeightCall {};
-    blobstream_contract
-        .call_builder(&latest_height_call)
-        .call()
-        .await?;
-
     // Finally, construct the input from the environment.
     // There are two options: Use EIP-4788 for verification by providing a Beacon API endpoint,
     // or use the regular `blockhash' opcode.
     let evm_input = env.into_input().await?;
+    let blobstream_info = BlobstreamInfo {
+        address: blobstream_contract_address,
+        implementation: blobstream_impl,
+    };
 
-    Ok(evm_input)
+    Ok((evm_input, blobstream_info))
 }
 
 /// Challenges the availability of a blob in an Eclipse batch / index.
@@ -449,7 +480,7 @@ pub async fn challenge_da_commitment(
     .await?;
 
     // Perform the preflight calls to Blobstream's `verifyAttestation()`
-    let evm_input = perform_preflight_calls(
+    let (evm_input, blobstream_info) = perform_preflight_calls(
         blobstream_event_cache.eth_provider,
         &chain_spec,
         blobstream_address,
@@ -473,7 +504,7 @@ pub async fn challenge_da_commitment(
         let env = ExecutorEnv::builder()
             .write(&evm_input)?
             .write(&chain_spec)?
-            .write(&blobstream_address)?
+            .write(&blobstream_info)?
             .write_frame(&serialized_da_guest_data)
             .build()?;
 

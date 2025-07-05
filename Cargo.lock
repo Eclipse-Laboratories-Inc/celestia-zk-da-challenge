@@ -7035,6 +7035,7 @@ dependencies = [
 name = "toolkit"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives 0.8.25",
  "alloy-sol-types",
  "bincode",
  "celestia-types 0.11.0",
