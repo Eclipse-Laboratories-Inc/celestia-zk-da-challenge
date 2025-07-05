@@ -34,7 +34,9 @@ use risc0_steel::{
 use risc0_zkvm::{default_prover, Digest, ExecutorEnv, ProverOpts, Receipt, VerifierContext};
 use std::collections::BTreeMap;
 use tokio::task;
-use toolkit::blobstream::{BinaryMerkleProof, Blobstream0, DataRootTuple, IDAOracle, SP1Blobstream};
+use toolkit::blobstream::{
+    BinaryMerkleProof, Blobstream0, DataRootTuple, IDAOracle, SP1Blobstream,
+};
 use toolkit::journal::Journal;
 use toolkit::{
     BlobIndex, BlobProofData, BlobstreamAttestation, BlobstreamAttestationAndRowProof,
