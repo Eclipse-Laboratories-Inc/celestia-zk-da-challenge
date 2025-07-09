@@ -338,6 +338,7 @@ async fn perform_preflight_blobstream_height_call<
     N: Network,
     P: Provider<N> + 'static,
 >(
+    #[allow(clippy::type_complexity)]
     blobstream_contract: &mut Contract<&mut EvmEnv<ProofDb<ProviderDb<N, P>>, H, HostCommit<C>>>,
 ) -> Result<BlobstreamImpl, anyhow::Error> {
     let latest_height_call = Blobstream0::latestHeightCall {};
