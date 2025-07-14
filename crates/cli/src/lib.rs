@@ -332,15 +332,14 @@ async fn fetch_da_challenge_guest_data(
     })
 }
 
+#[allow(clippy::type_complexity)]
 async fn perform_preflight_blobstream_height_call<
     C,
     H: EvmBlockHeader + Clone + Send + 'static,
     N: Network,
     P: Provider<N> + 'static,
 >(
-    #[allow(clippy::type_complexity)] blobstream_contract: &mut Contract<
-        &mut EvmEnv<ProofDb<ProviderDb<N, P>>, H, HostCommit<C>>,
-    >,
+    blobstream_contract: &mut Contract<&mut EvmEnv<ProofDb<ProviderDb<N, P>>, H, HostCommit<C>>>,
 ) -> Result<BlobstreamImpl, anyhow::Error> {
     let latest_height_call = Blobstream0::latestHeightCall {};
     let result = blobstream_contract
