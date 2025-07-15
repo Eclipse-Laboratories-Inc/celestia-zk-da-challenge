@@ -61,6 +61,10 @@ sol! {
     contract Blobstream0 {
         function latestHeight() external view returns (uint64);
     }
+
+    contract SP1Blobstream {
+        function latestBlock() external view returns (uint64);
+    }
 }
 
 impl Serialize for BinaryMerkleProof {
