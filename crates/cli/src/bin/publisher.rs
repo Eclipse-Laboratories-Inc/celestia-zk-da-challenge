@@ -75,12 +75,11 @@ async fn main() -> Result<()> {
         .wallet(wallet)
         .on_http(args.eth_rpc_url.clone());
 
+    let celestia_client = CelestiaClient::new(args.celestia_rpc_url.as_str(), None).await?;
+
     // Need a different provider for now for Blobstream event filtering
     // TODO: import hana's find_data_commitment() into toolkit
     let root_provider = RootProvider::connect(args.eth_rpc_url.as_str()).await?;
-
-    let celestia_url = args.celestia_rpc_url;
-    let celestia_client = CelestiaClient::new(&celestia_url.as_str(), None).await?;
 
     let index_blob: SpanSequence = args.index_blob;
     let challenged_blob: SpanSequence = args.challenged_blob;
