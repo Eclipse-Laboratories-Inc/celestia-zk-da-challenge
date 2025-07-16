@@ -68,24 +68,6 @@ You will need the following tools on your machine:
 * The RISC Zero toolchain (v2.0.1)
 * Foundry (v1 or above)
 
-## Integration tests
-
-The integration tests use a Docker Compose setup with the following components:
-* A local [Celestia] deployment
-* [Anvil] to emulate Ethereum
-* A [Blobstream] service to publish Celestia block ranges to Anvil.
-
-This is all managed by the `ci/docker-compose.yml` file.
-
-The integration tests can be run with the following command:
-
-```shell
-bash scripts/run-tests.sh
-```
-
-If you want to reset the test environment, run `bash scripts/reset-tests.sh --reset`.
-Currently, tests must be run sequentially because the Ethereum RPC calls are not thread safe.
-
 ## How to run it
 
 The `cli` package is used to run the guest program and attempts to publish a proof to a deployed [Counter] contract.
@@ -160,3 +142,21 @@ export BONSAI_API_URL="BONSAI_URL" # provided with your api key
 ```
 
 ***Note:*** *To request an API key [complete the form here](https://bonsai.xyz/apply).*
+
+## Integration tests
+
+The integration tests use a Docker Compose setup with the following components:
+* A local [Celestia] deployment
+* [Anvil] to emulate Ethereum
+* A [Blobstream] service to publish Celestia block ranges to Anvil.
+
+This is all managed by the `ci/docker-compose.yml` file.
+
+The integration tests can be run with the following command:
+
+```shell
+bash scripts/run-tests.sh
+```
+
+If you want to reset the test environment, run `bash scripts/reset-tests.sh --reset`.
+Currently, tests must be run sequentially because the Ethereum RPC calls are not thread safe.
