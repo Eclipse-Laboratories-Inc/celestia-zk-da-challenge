@@ -16,8 +16,8 @@ use toolkit::errors::{compute_ods_width_from_row_proof, DaFraud, DaGuestError, I
 use toolkit::journal::Journal;
 use toolkit::{
     share_proof_start_index_ods, BlobIndex, BlobProofData, BlobstreamAttestation,
-    BlobstreamAttestationAndRowProof, BlobstreamImpl, BlobstreamInfo, DaChallengeGuestData,
-    SpanSequence,
+    BlobstreamAttestationAndRowProof, BlobstreamImpl, BlobstreamInfo, DaChallenge,
+    DaChallengeGuestData, SpanSequence,
 };
 
 risc0_zkvm::guest::entry!(main);
@@ -173,7 +173,7 @@ fn check_da_challenge(
 ) -> Result<(), DaGuestError> {
     let DaChallengeGuestData {
         index_blob,
-        challenged_blob,
+        da_challenge,
         index_blob_proof_data: index_blob_data,
         block_proofs,
         first_blobstream_attestation,
@@ -195,7 +195,7 @@ fn check_da_challenge(
     }
 
     // If the index blob is the missing blob, verify exclusion immediately.
-    if challenged_blob == index_blob {
+    if let DaChallenge::IndexIsUnavailable = da_challenge {
         // Verify that the index blob is excluded
         check_block_height_bounds(
             index_blob,
@@ -223,19 +223,21 @@ fn check_da_challenge(
         AppVersion::from_u64(index_blob_data.app_version).expect("invalid app version");
     let index = BlobIndex::reconstruct_from_raw(index_blob_data.shares(), app_version)?;
 
-    // Iterate over the blobs in the index and check if they're the missing blob.
-    for blob_commitment in index.blobs {
-        if challenged_blob == blob_commitment {
-            check_block_height_bounds(
-                challenged_blob,
-                &blobstream_contract,
-                blobstream_impl,
-                first_blobstream_attestation,
-            )?;
-            return verify_span_sequence_inclusion(
-                &blob_commitment,
-                &block_proofs[&blob_commitment.height].row_proof,
-            );
+    if let DaChallenge::BlobInIndexIsUnavailable(challenged_blob) = da_challenge {
+        // Iterate over the blobs in the index and check if they're the missing blob.
+        for blob_commitment in index.blobs {
+            if challenged_blob == blob_commitment {
+                check_block_height_bounds(
+                    challenged_blob,
+                    &blobstream_contract,
+                    blobstream_impl,
+                    first_blobstream_attestation,
+                )?;
+                return verify_span_sequence_inclusion(
+                    &blob_commitment,
+                    &block_proofs[&blob_commitment.height].row_proof,
+                );
+            }
         }
     }
 

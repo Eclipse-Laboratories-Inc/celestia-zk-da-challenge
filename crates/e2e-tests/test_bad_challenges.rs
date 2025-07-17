@@ -10,7 +10,7 @@ use rstest::rstest;
 use test_toolkit::blobstream::wait_for_blobstream_inclusion_with_timeout;
 use test_toolkit::index_blob::{create_and_publish_index_blob, publish_single_blob};
 use test_toolkit::test_env::{test_env, TestEnv};
-use toolkit::SpanSequence;
+use toolkit::{DaChallenge, SpanSequence};
 
 const BLOBS_PER_BLOCK: usize = 10;
 
@@ -19,7 +19,7 @@ async fn assert_challenge_error<P: Provider>(
     provider: &P,
     blobstream_address: Address,
     index_span_sequence: SpanSequence,
-    challenged_span_sequence: SpanSequence,
+    da_challenge: DaChallenge,
     error_message: &str,
 ) {
     let current_eth_block = provider
@@ -37,7 +37,7 @@ async fn assert_challenge_error<P: Provider>(
         BlockNumberOrTag::Number(current_eth_block),
         blobstream_address,
         index_span_sequence,
-        challenged_span_sequence,
+        da_challenge,
     )
     .await;
 
@@ -55,14 +55,14 @@ async fn assert_blob_is_available<P: Provider>(
     provider: &P,
     blobstream_address: Address,
     index_span_sequence: SpanSequence,
-    challenged_span_sequence: SpanSequence,
+    da_challenge: DaChallenge,
 ) {
     assert_challenge_error(
         celestia_client,
         provider,
         blobstream_address,
         index_span_sequence,
-        challenged_span_sequence,
+        da_challenge,
         "the specified blob is available, DA challenge failed",
     )
     .await;
@@ -73,14 +73,14 @@ async fn assert_blob_not_in_index<P: Provider>(
     provider: &P,
     blobstream_address: Address,
     index_span_sequence: SpanSequence,
-    challenged_span_sequence: SpanSequence,
+    da_challenge: DaChallenge,
 ) {
     assert_challenge_error(
         celestia_client,
         provider,
         blobstream_address,
         index_span_sequence,
-        challenged_span_sequence,
+        da_challenge,
         "the blob under challenge is not part of the specified index",
     )
     .await;
@@ -123,7 +123,7 @@ async fn challenge_valid_index_blob(#[future] test_env: TestEnv) {
         &provider,
         *blobstream_contract.address(),
         index_span_sequence,
-        index_span_sequence,
+        DaChallenge::IndexIsUnavailable,
     )
     .await;
 
@@ -133,7 +133,7 @@ async fn challenge_valid_index_blob(#[future] test_env: TestEnv) {
             &provider,
             *blobstream_contract.address(),
             index_span_sequence,
-            span_sequence,
+            DaChallenge::BlobInIndexIsUnavailable(span_sequence),
         )
         .await;
     }
@@ -182,7 +182,7 @@ async fn challenge_blob_not_in_index(#[future] test_env: TestEnv) {
         &provider,
         *blobstream_contract.address(),
         index_span_sequence,
-        other_span_sequence,
+        DaChallenge::BlobInIndexIsUnavailable(other_span_sequence),
     )
     .await;
 }

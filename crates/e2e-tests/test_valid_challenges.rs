@@ -13,7 +13,7 @@ use test_toolkit::index_blob::{
     publish_single_blob, DEFAULT_NAMESPACE,
 };
 use test_toolkit::test_env::{test_env, TestEnv};
-use toolkit::{eds_index_to_ods, BlobIndex, SpanSequence};
+use toolkit::{eds_index_to_ods, BlobIndex, DaChallenge, SpanSequence};
 
 /// Size of the user payload in single-share blobs.
 const BLOB_USER_DATA_SIZE: usize = 478;
@@ -42,7 +42,7 @@ async fn invalid_block_height(#[future] test_env: TestEnv, #[case] span_sequence
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         span_sequence,
-        span_sequence,
+        DaChallenge::IndexIsUnavailable,
     )
     .await
     .expect("challenge should succeed");
@@ -88,7 +88,7 @@ async fn invalid_block_height_in_index(
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         index_span_sequence,
-        span_sequence,
+        DaChallenge::BlobInIndexIsUnavailable(span_sequence),
     )
     .await
     .expect("challenge should succeed");
@@ -140,7 +140,7 @@ async fn index_start_out_of_square(#[future] test_env: TestEnv) {
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         bad_span_sequence,
-        bad_span_sequence,
+        DaChallenge::IndexIsUnavailable,
     )
     .await
     .expect("challenge should succeed");
@@ -192,7 +192,7 @@ async fn index_end_out_of_square(#[future] test_env: TestEnv) {
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         bad_span_sequence,
-        bad_span_sequence,
+        DaChallenge::IndexIsUnavailable,
     )
     .await
     .expect("challenge should succeed");
@@ -238,7 +238,7 @@ async fn index_end_u32_overflow(#[future] test_env: TestEnv) {
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         bad_span_sequence,
-        bad_span_sequence,
+        DaChallenge::IndexIsUnavailable,
     )
     .await
     .expect("challenge should succeed");
@@ -280,7 +280,7 @@ async fn blob_in_index_out_of_square(#[future] test_env: TestEnv) {
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         index_span_sequence,
-        challenged_span_sequence,
+        DaChallenge::BlobInIndexIsUnavailable(challenged_span_sequence),
     )
     .await
     .expect("challenge should succeed");
@@ -385,7 +385,7 @@ async fn index_spans_multiple_namespaces(#[future] test_env: TestEnv) {
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         index_span_sequence,
-        challenged_span_sequence,
+        DaChallenge::BlobInIndexIsUnavailable(challenged_span_sequence),
     )
     .await
     .expect("challenge should succeed");
@@ -418,14 +418,6 @@ async fn index_blob_not_deserializable(#[future] test_env: TestEnv) {
     let root_provider = provider.root().clone();
     let chain_spec = TestEnv::chain_spec();
 
-    // Here we can challenge any span sequence != index span sequence.
-    // This will trigger the guest to attempt deserialization of the index blob, which will fail.
-    let challenged_span_sequence = SpanSequence {
-        height: bad_index_span_sequence.height,
-        start: 0,
-        size: 1,
-    };
-
     challenge_da_commitment(
         &celestia_client,
         root_provider,
@@ -433,7 +425,7 @@ async fn index_blob_not_deserializable(#[future] test_env: TestEnv) {
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         bad_index_span_sequence,
-        challenged_span_sequence,
+        DaChallenge::IndexIsUnreadable,
     )
     .await
     .expect("challenge should succeed");
@@ -478,7 +470,7 @@ async fn index_blob_spans_zero_shares(#[future] test_env: TestEnv) {
         BlockNumberOrTag::Latest,
         *blobstream_contract.address(),
         bad_span_sequence,
-        bad_span_sequence,
+        DaChallenge::IndexIsUnavailable,
     )
     .await
     .expect("challenge should succeed");

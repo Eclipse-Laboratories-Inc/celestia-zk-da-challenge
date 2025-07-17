@@ -12,6 +12,17 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+/// The subtype of data availability challenge.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum DaChallenge {
+    /// The index blob is unavailable.
+    IndexIsUnavailable,
+    /// The index blob is available but unreadable.
+    IndexIsUnreadable,
+    /// A blob in the index blob is unavailable.
+    BlobInIndexIsUnavailable(SpanSequence),
+}
+
 /// Commits to a Celestia blob by its position in the Original Data Square (ODS).
 /// Note that the start index refers to the ODS, but the Celestia API returns the EDS index
 /// when retrieving the blob with `Blob.Get`.
@@ -157,7 +168,7 @@ pub struct BlobstreamInfo {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DaChallengeGuestData {
     pub index_blob: SpanSequence,
-    pub challenged_blob: SpanSequence,
+    pub da_challenge: DaChallenge,
     pub index_blob_proof_data: Option<BlobProofData>,
     pub block_proofs: BTreeMap<u64, BlobstreamAttestationAndRowProof>,
     /// The attestation for the first Celestia block range covered by the Blobstream

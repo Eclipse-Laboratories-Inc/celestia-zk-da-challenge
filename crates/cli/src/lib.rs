@@ -39,8 +39,8 @@ use toolkit::blobstream::{
 };
 use toolkit::journal::Journal;
 use toolkit::{
-    BlobIndex, BlobProofData, BlobstreamAttestation, BlobstreamAttestationAndRowProof,
-    BlobstreamImpl, BlobstreamInfo, DaChallengeGuestData, SpanSequence,
+    BlobProofData, BlobstreamAttestation, BlobstreamAttestationAndRowProof, BlobstreamImpl,
+    BlobstreamInfo, DaChallenge, DaChallengeGuestData, SpanSequence,
 };
 use tracing_subscriber::EnvFilter;
 
@@ -222,34 +222,14 @@ async fn fetch_block_proof(
     })
 }
 
-async fn fetch_block_proof_for_blob_in_index(
-    celestia_client: &CelestiaClient,
-    index: &BlobIndex,
-    challenged_blob: SpanSequence,
-    blobstream_event_cache: &mut BlobstreamEventCache,
-) -> Result<Option<BlobstreamAttestationAndRowProof>, anyhow::Error> {
-    for span_sequence in &index.blobs {
-        if span_sequence == &challenged_blob {
-            let block_header = celestia_client
-                .header_get_by_height(span_sequence.height)
-                .await?;
-            let block_proof =
-                fetch_block_proof(celestia_client, &block_header, blobstream_event_cache).await?;
-            return Ok(Some(block_proof));
-        }
-    }
-
-    Ok(None)
-}
-
 /// Fetches all the data required to execute the DA challenge guest program.
 ///
 /// This function fetches all the data that it can actually fetch, as a valid DA challenge will
 /// be unable to download some data by definition.
 async fn fetch_da_challenge_guest_data(
     celestia_client: &CelestiaClient,
-    index_blob: SpanSequence,
-    challenged_blob: SpanSequence,
+    index_span_sequence: SpanSequence,
+    da_challenge: DaChallenge,
     blobstream_event_cache: &mut BlobstreamEventCache,
 ) -> Result<DaChallengeGuestData, anyhow::Error> {
     // First, check the bounds on the index blob height as an invalid block height would prevent
@@ -258,79 +238,145 @@ async fn fetch_da_challenge_guest_data(
     let first_blobstream_attestation =
         get_first_blobstream_attestation(celestia_client, blobstream_event_cache).await?;
 
-    if index_blob.height < first_blobstream_attestation.height
-        || index_blob.height > current_celestia_block_height
-    {
-        return Ok(DaChallengeGuestData {
-            index_blob,
-            challenged_blob,
-            index_blob_proof_data: None,
-            block_proofs: Default::default(),
-            first_blobstream_attestation,
-        });
+    let blobstream_block_range =
+        first_blobstream_attestation.height..=current_celestia_block_height;
+
+    let mut block_proofs = BTreeMap::new();
+    // Cache the index block header to avoid re-downloading it later, if it exists.
+
+    if blobstream_block_range.contains(&index_span_sequence.height) {
+        let index_block_header = celestia_client
+            .header_get_by_height(index_span_sequence.height)
+            .await?;
+        let index_block_proof =
+            fetch_block_proof(celestia_client, &index_block_header, blobstream_event_cache).await?;
+        block_proofs.insert(index_span_sequence.height, index_block_proof);
     }
 
-    let index_block_header = celestia_client
-        .header_get_by_height(index_blob.height)
-        .await?;
+    if let DaChallenge::BlobInIndexIsUnavailable(challenged_span_sequence) = da_challenge {
+        if blobstream_block_range.contains(&challenged_span_sequence.height) {
+            let block_header = celestia_client
+                .header_get_by_height(challenged_span_sequence.height)
+                .await?;
+            let block_proof =
+                fetch_block_proof(celestia_client, &block_header, blobstream_event_cache).await?;
 
-    let index_block_proof =
-        fetch_block_proof(celestia_client, &index_block_header, blobstream_event_cache).await?;
-
-    let mut block_proofs = BTreeMap::from([(index_blob.height, index_block_proof)]);
-
-    if index_blob == challenged_blob {
-        return Ok(DaChallengeGuestData {
-            index_blob,
-            challenged_blob,
-            index_blob_proof_data: None,
-            block_proofs,
-            first_blobstream_attestation,
-        });
-    }
-
-    // Only download the index blob and additional data if the challenge targets a blob inside
-    // the index
-    let index_blob_proof_data =
-        fetch_blob_proof_data(celestia_client, index_blob, &index_block_header).await?;
-
-    // The index may not be deserializable. We try here to fetch the Blobstream attestation
-    // for the challenged blob, but failing here should not prevent the challenge from proceeding.
-    if let Ok(index) =
-        BlobIndex::reconstruct_from_raw(index_blob_proof_data.shares(), AppVersion::V2)
-    {
-        if challenged_blob.height < first_blobstream_attestation.height
-            || challenged_blob.height > current_celestia_block_height
-        {
-            return Ok(DaChallengeGuestData {
-                index_blob,
-                challenged_blob,
-                index_blob_proof_data: Some(index_blob_proof_data),
-                block_proofs,
-                first_blobstream_attestation,
-            });
-        }
-
-        if let Some(block_proof) = fetch_block_proof_for_blob_in_index(
-            celestia_client,
-            &index,
-            challenged_blob,
-            blobstream_event_cache,
-        )
-        .await?
-        {
-            block_proofs.insert(challenged_blob.height, block_proof);
+            block_proofs.insert(challenged_span_sequence.height, block_proof);
         }
     }
+
+    // Get the share proofs for the index blob
+    let index_blob_proof_data = match da_challenge {
+        DaChallenge::IndexIsUnavailable => None,
+        _ => {
+            let index_block_header = celestia_client
+                .header_get_by_height(index_span_sequence.height)
+                .await?;
+            Some(
+                fetch_blob_proof_data(celestia_client, index_span_sequence, &index_block_header)
+                    .await?,
+            )
+        }
+    };
 
     Ok(DaChallengeGuestData {
-        index_blob,
-        challenged_blob,
-        index_blob_proof_data: Some(index_blob_proof_data),
+        index_blob: index_span_sequence,
+        da_challenge,
+        index_blob_proof_data,
         block_proofs,
         first_blobstream_attestation,
     })
 }
+
+// /// Fetches all the data required to execute the DA challenge guest program.
+// ///
+// /// This function fetches all the data that it can actually fetch, as a valid DA challenge will
+// /// be unable to download some data by definition.
+// async fn fetch_da_challenge_guest_data(
+//     celestia_client: &CelestiaClient,
+//     index_blob: SpanSequence,
+//     da_challenge: DaChallenge,
+//     blobstream_event_cache: &mut BlobstreamEventCache,
+// ) -> Result<DaChallengeGuestData, anyhow::Error> {
+//     // First, check the bounds on the index blob height as an invalid block height would prevent
+//     // us from fetching any data from Celestia.
+//     let current_celestia_block_height = celestia_client.header_local_head().await?.height().value();
+//     let first_blobstream_attestation =
+//         get_first_blobstream_attestation(celestia_client, blobstream_event_cache).await?;
+//
+//     if index_blob.height < first_blobstream_attestation.height
+//         || index_blob.height > current_celestia_block_height
+//     {
+//         return Ok(DaChallengeGuestData {
+//             index_blob,
+//             da_challenge,
+//             index_blob_proof_data: None,
+//             block_proofs: Default::default(),
+//             first_blobstream_attestation,
+//         });
+//     }
+//
+//     let index_block_header = celestia_client
+//         .header_get_by_height(index_blob.height)
+//         .await?;
+//
+//     let index_block_proof =
+//         fetch_block_proof(celestia_client, &index_block_header, blobstream_event_cache).await?;
+//
+//     let mut block_proofs = BTreeMap::from([(index_blob.height, index_block_proof)]);
+//
+//     if let DaChallenge::IndexIsUnavailable = da_challenge {
+//         return Ok(DaChallengeGuestData {
+//             index_blob,
+//             da_challenge,
+//             index_blob_proof_data: None,
+//             block_proofs,
+//             first_blobstream_attestation,
+//         });
+//     }
+//
+//     // Only download the index blob and additional data if the challenge targets a blob inside
+//     // the index
+//     let index_blob_proof_data =
+//         fetch_blob_proof_data(celestia_client, index_blob, &index_block_header).await?;
+//
+//     // The index may not be deserializable. We try here to fetch the Blobstream attestation
+//     // for the challenged blob, but failing here should not prevent the challenge from proceeding.
+//     if let Ok(index) =
+//         BlobIndex::reconstruct_from_raw(index_blob_proof_data.shares(), AppVersion::V2)
+//     {
+//         if challenged_blob.height < first_blobstream_attestation.height
+//             || challenged_blob.height > current_celestia_block_height
+//         {
+//             return Ok(DaChallengeGuestData {
+//                 index_blob,
+//                 challenged_blob,
+//                 index_blob_proof_data: Some(index_blob_proof_data),
+//                 block_proofs,
+//                 first_blobstream_attestation,
+//             });
+//         }
+//
+//         if let Some(block_proof) = fetch_block_proof_for_blob_in_index(
+//             celestia_client,
+//             &index,
+//             challenged_blob,
+//             blobstream_event_cache,
+//         )
+//         .await?
+//         {
+//             block_proofs.insert(challenged_blob.height, block_proof);
+//         }
+//     }
+//
+//     Ok(DaChallengeGuestData {
+//         index_blob,
+//         challenged_blob,
+//         index_blob_proof_data: Some(index_blob_proof_data),
+//         block_proofs,
+//         first_blobstream_attestation,
+//     })
+// }
 
 #[allow(clippy::type_complexity)]
 async fn perform_preflight_blobstream_height_call<
@@ -468,7 +514,7 @@ pub async fn challenge_da_commitment(
     execution_block: BlockNumberOrTag,
     blobstream_address: Address,
     index_blob: SpanSequence,
-    challenged_blob: SpanSequence,
+    da_challenge: DaChallenge,
     #[cfg(any(feature = "beacon", feature = "history"))] beacon_api_url: url::Url,
     #[cfg(feature = "history")] commitment_block: BlockNumberOrTag,
 ) -> Result<(Receipt, Vec<u8>), anyhow::Error> {
@@ -477,7 +523,7 @@ pub async fn challenge_da_commitment(
     let da_challenge_guest_data = fetch_da_challenge_guest_data(
         celestia_client,
         index_blob,
-        challenged_blob,
+        da_challenge,
         &mut blobstream_event_cache,
     )
     .await?;

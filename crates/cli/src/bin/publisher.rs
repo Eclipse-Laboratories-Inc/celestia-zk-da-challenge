@@ -1,7 +1,7 @@
 use alloy_primitives::Address;
 use anyhow::Result;
 use celestia_rpc::Client as CelestiaClient;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use cli::{challenge_da_commitment, increment_counter, logging_init, ICounter};
 use dotenv::dotenv;
 use risc0_ethereum_contracts::alloy::providers::{ProviderBuilder, RootProvider};
@@ -10,8 +10,27 @@ use risc0_steel::ethereum::ETH_SEPOLIA_CHAIN_SPEC;
 use risc0_steel::host::BlockNumberOrTag;
 use std::str::FromStr;
 use toolkit::constants::BLOBSTREAM_ADDRESS;
-use toolkit::SpanSequence;
+use toolkit::{DaChallenge, SpanSequence};
 use url::Url;
+
+#[derive(Debug, Clone, Subcommand)]
+enum ChallengeCommand {
+    IndexIsUnavailable,
+    IndexIsUnreadable,
+    BlobInIndexIsUnavailable {
+        span: SpanSequence,
+    },
+}
+
+impl Into<DaChallenge> for ChallengeCommand {
+    fn into(self) -> DaChallenge {
+        match self {
+            Self::IndexIsUnavailable => {DaChallenge::IndexIsUnavailable}
+            Self::IndexIsUnreadable => {DaChallenge::IndexIsUnreadable}
+            Self::BlobInIndexIsUnavailable { span } => {DaChallenge::BlobInIndexIsUnavailable(span)}
+        }
+    }
+}
 
 /// Simple program to create a proof to increment the Counter contract.
 #[derive(Parser)]
@@ -53,10 +72,9 @@ struct CliArgs {
     #[arg(long)]
     index_blob: SpanSequence,
 
-    /// Sequence of spans pointing to the missing blob. Can be the index blob or any blob
-    /// pointed to by the contents of the index blob.
-    #[arg(long)]
-    challenged_blob: SpanSequence,
+    /// Challenge type.
+    #[command(subcommand)]
+    challenge: ChallengeCommand,
 }
 
 #[tokio::main]
@@ -82,7 +100,7 @@ async fn main() -> Result<()> {
     let root_provider = RootProvider::connect(args.eth_rpc_url.as_str()).await?;
 
     let index_blob: SpanSequence = args.index_blob;
-    let challenged_blob: SpanSequence = args.challenged_blob;
+    let da_challenge: DaChallenge = args.challenge.into();
 
     // Create an alloy instance of the Counter contract.
     let counter_contract = ICounter::new(args.counter_address, &eth_provider);
@@ -94,7 +112,7 @@ async fn main() -> Result<()> {
         args.execution_block,
         blobstream_address,
         index_blob,
-        challenged_blob,
+        da_challenge,
         #[cfg(any(feature = "beacon", feature = "history"))]
         args.beacon_api_url,
         #[cfg(feature = "history")]
