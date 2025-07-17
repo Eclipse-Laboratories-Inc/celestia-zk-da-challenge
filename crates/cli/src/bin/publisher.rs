@@ -1,5 +1,5 @@
 use alloy_primitives::Address;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use celestia_rpc::Client as CelestiaClient;
 use clap::Parser;
 use cli::{challenge_da_commitment, increment_counter, logging_init, ICounter};
@@ -75,13 +75,11 @@ async fn main() -> Result<()> {
         .wallet(wallet)
         .on_http(args.eth_rpc_url.clone());
 
+    let celestia_client = CelestiaClient::new(args.celestia_rpc_url.as_str(), None).await?;
+
     // Need a different provider for now for Blobstream event filtering
     // TODO: import hana's find_data_commitment() into toolkit
     let root_provider = RootProvider::connect(args.eth_rpc_url.as_str()).await?;
-
-    let celestia_url = std::env::var("CELESTIA_MOCHA_LIGHT_NODE_URL")
-        .with_context(|| "CELESTIA_MOCHA_LIGHT_NODE_URL must be set")?;
-    let celestia_client = CelestiaClient::new(&celestia_url, None).await?;
 
     let index_blob: SpanSequence = args.index_blob;
     let challenged_blob: SpanSequence = args.challenged_blob;
