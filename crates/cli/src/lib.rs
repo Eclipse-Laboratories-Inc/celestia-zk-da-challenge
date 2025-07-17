@@ -242,26 +242,20 @@ async fn fetch_da_challenge_guest_data(
         first_blobstream_attestation.height..=current_celestia_block_height;
 
     let mut block_proofs = BTreeMap::new();
-    // Cache the index block header to avoid re-downloading it later, if it exists.
+    let celestia_block_heights = {
+        let mut blocks = vec![index_span_sequence.height];
+        if let DaChallenge::BlobInIndexIsUnavailable(challenged_span_sequence) = da_challenge {
+            blocks.push(challenged_span_sequence.height);
+        }
+        blocks
+    };
 
-    if blobstream_block_range.contains(&index_span_sequence.height) {
-        let index_block_header = celestia_client
-            .header_get_by_height(index_span_sequence.height)
-            .await?;
-        let index_block_proof =
-            fetch_block_proof(celestia_client, &index_block_header, blobstream_event_cache).await?;
-        block_proofs.insert(index_span_sequence.height, index_block_proof);
-    }
-
-    if let DaChallenge::BlobInIndexIsUnavailable(challenged_span_sequence) = da_challenge {
-        if blobstream_block_range.contains(&challenged_span_sequence.height) {
-            let block_header = celestia_client
-                .header_get_by_height(challenged_span_sequence.height)
-                .await?;
+    for block_height in celestia_block_heights {
+        if blobstream_block_range.contains(&block_height) {
+            let block_header = celestia_client.header_get_by_height(block_height).await?;
             let block_proof =
                 fetch_block_proof(celestia_client, &block_header, blobstream_event_cache).await?;
-
-            block_proofs.insert(challenged_span_sequence.height, block_proof);
+            block_proofs.insert(block_height, block_proof);
         }
     }
 
@@ -269,6 +263,8 @@ async fn fetch_da_challenge_guest_data(
     let index_blob_proof_data = match da_challenge {
         DaChallenge::IndexIsUnavailable => None,
         _ => {
+            // TODO: we already download the index block header when fetching Blobstream proof(s)
+            //       just above, can we avoid doing it again here (elegantly?)
             let index_block_header = celestia_client
                 .header_get_by_height(index_span_sequence.height)
                 .await?;

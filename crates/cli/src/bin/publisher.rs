@@ -17,17 +17,17 @@ use url::Url;
 enum ChallengeCommand {
     IndexIsUnavailable,
     IndexIsUnreadable,
-    BlobInIndexIsUnavailable {
-        span: SpanSequence,
-    },
+    BlobInIndexIsUnavailable { span: SpanSequence },
 }
 
-impl Into<DaChallenge> for ChallengeCommand {
-    fn into(self) -> DaChallenge {
-        match self {
-            Self::IndexIsUnavailable => {DaChallenge::IndexIsUnavailable}
-            Self::IndexIsUnreadable => {DaChallenge::IndexIsUnreadable}
-            Self::BlobInIndexIsUnavailable { span } => {DaChallenge::BlobInIndexIsUnavailable(span)}
+impl From<ChallengeCommand> for DaChallenge {
+    fn from(val: ChallengeCommand) -> Self {
+        match val {
+            ChallengeCommand::IndexIsUnavailable => DaChallenge::IndexIsUnavailable,
+            ChallengeCommand::IndexIsUnreadable => DaChallenge::IndexIsUnreadable,
+            ChallengeCommand::BlobInIndexIsUnavailable { span } => {
+                DaChallenge::BlobInIndexIsUnavailable(span)
+            }
         }
     }
 }
