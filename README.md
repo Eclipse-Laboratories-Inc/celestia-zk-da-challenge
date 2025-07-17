@@ -123,12 +123,15 @@ cast call --rpc-url "${ETH_RPC_URL}" "${COUNTER_ADDRESS}" 'get()(uint256)'
 ```
 
 For additional testing, we uploaded a few bad index blobs for testing on Mocha.
-You can test the following use cases:
+You can test the following challenges:
 
 1. Valid DA challenge: Specify a blob with an out-of-bounds start index (ex: 6671289:1000000:1024) and challenge the same blob.
 2. Invalid index challenge: Specify a valid index blob (ex: 6671289:6:4) and challenge the same blob.
 3. Invalid blob challenge inside the index: Specify a valid index blob (ex: 6671289:6:4) and challenge a random blob inside it (ex: 6671289:1000:1000)
 4. Deserialization error: Specify an existing blob that does not deserialize nicely (ex: 6671289:6:4).
+5. Block height out of range: Specify a span sequence with a nonexisting block height (ex: 1000000000:1:1).
+
+All these challenge types and more are tested in the integration tests.
 
 ### Submitting real ZK proofs
 
