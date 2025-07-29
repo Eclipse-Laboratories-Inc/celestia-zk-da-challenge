@@ -208,7 +208,7 @@ async fn fetch_block_proof(
         .dah
         .row_proof(0..=0)
         .with_context(|| "Failed to generate row proof for row 0")?
-        .proofs[0]
+        .proofs()[0]
         .clone();
     let row_root_node = block_header
         .dah

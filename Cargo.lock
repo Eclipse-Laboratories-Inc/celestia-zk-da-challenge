@@ -1761,8 +1761,9 @@ dependencies = [
 
 [[package]]
 name = "celestia-proto"
-version = "0.7.0"
-source = "git+https://github.com/Eclipse-Laboratories-Inc/lumina?rev=90384f5302d0dc677ac3e8c00db7c229a27aa4a1#90384f5302d0dc677ac3e8c00db7c229a27aa4a1"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a027c55dacaabcc6daddf23375c0d80a401880cd1e3a57c36982f66c540e51d4"
 dependencies = [
  "bytes",
  "prost 0.13.5",
@@ -1782,7 +1783,7 @@ dependencies = [
  "async-trait",
  "celestia-types 0.10.0",
  "http",
- "jsonrpsee",
+ "jsonrpsee 0.24.9",
  "prost 0.13.5",
  "serde",
  "thiserror 1.0.69",
@@ -1791,16 +1792,18 @@ dependencies = [
 
 [[package]]
 name = "celestia-rpc"
-version = "0.10.0"
-source = "git+https://github.com/Eclipse-Laboratories-Inc/lumina?rev=90384f5302d0dc677ac3e8c00db7c229a27aa4a1#90384f5302d0dc677ac3e8c00db7c229a27aa4a1"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43555437ffde5f46770dcfaa8499bbe2d46866b2c1ff50e7b5d4619c4a5f2e93"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
- "celestia-types 0.11.0",
+ "celestia-types 0.12.0",
  "http",
- "jsonrpsee",
+ "jsonrpsee 0.25.1",
  "prost 0.13.5",
  "serde",
+ "serde_repr",
  "thiserror 1.0.69",
  "tracing",
 ]
@@ -1838,7 +1841,7 @@ dependencies = [
  "bitvec",
  "blockstore",
  "bytes",
- "celestia-proto 0.7.0 (git+https://github.com/Eclipse-Laboratories-Inc/lumina?rev=81da538d2b76933f8d692b2f52946ead3255f22b)",
+ "celestia-proto 0.7.0",
  "cid 0.11.1",
  "const_format",
  "enum_dispatch",
@@ -1860,15 +1863,16 @@ dependencies = [
 
 [[package]]
 name = "celestia-types"
-version = "0.11.0"
-source = "git+https://github.com/Eclipse-Laboratories-Inc/lumina?rev=90384f5302d0dc677ac3e8c00db7c229a27aa4a1#90384f5302d0dc677ac3e8c00db7c229a27aa4a1"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6230f51ca735829affa9762f20acbb4e94a38b423d97c0bcacdd6b54ddfbbb78"
 dependencies = [
  "base64 0.22.1",
  "bech32 0.11.0",
  "bitvec",
  "blockstore",
  "bytes",
- "celestia-proto 0.7.0 (git+https://github.com/Eclipse-Laboratories-Inc/lumina?rev=90384f5302d0dc677ac3e8c00db7c229a27aa4a1)",
+ "celestia-proto 0.7.2",
  "cid 0.11.1",
  "const_format",
  "enum_dispatch",
@@ -1991,8 +1995,8 @@ dependencies = [
  "alloy-primitives 0.8.25",
  "anyhow",
  "bincode",
- "celestia-rpc 0.10.0",
- "celestia-types 0.11.0",
+ "celestia-rpc 0.11.2",
+ "celestia-types 0.12.0",
  "clap",
  "da-challenge-guest",
  "dotenv",
@@ -2527,8 +2531,8 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "bincode",
- "celestia-rpc 0.10.0",
- "celestia-types 0.11.0",
+ "celestia-rpc 0.11.2",
+ "celestia-types 0.12.0",
  "cli",
  "risc0-steel",
  "rstest",
@@ -3142,7 +3146,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "bytes",
- "celestia-proto 0.7.0 (git+https://github.com/Eclipse-Laboratories-Inc/lumina?rev=81da538d2b76933f8d692b2f52946ead3255f22b)",
+ "celestia-proto 0.7.0",
  "celestia-types 0.10.0",
  "serde",
  "sov-celestia-adapter",
@@ -3712,11 +3716,25 @@ version = "0.24.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37b26c20e2178756451cfeb0661fb74c47dd5988cb7e3939de7e9241fd604d42"
 dependencies = [
- "jsonrpsee-core",
- "jsonrpsee-http-client",
- "jsonrpsee-proc-macros",
- "jsonrpsee-types",
- "jsonrpsee-ws-client",
+ "jsonrpsee-core 0.24.9",
+ "jsonrpsee-http-client 0.24.9",
+ "jsonrpsee-proc-macros 0.24.9",
+ "jsonrpsee-types 0.24.9",
+ "jsonrpsee-ws-client 0.24.9",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fba77a59c4c644fd48732367624d1bcf6f409f9c9a286fbc71d2f1fc0b2ea16"
+dependencies = [
+ "jsonrpsee-core 0.25.1",
+ "jsonrpsee-http-client 0.25.1",
+ "jsonrpsee-proc-macros 0.25.1",
+ "jsonrpsee-types 0.25.1",
+ "jsonrpsee-ws-client 0.25.1",
  "tracing",
 ]
 
@@ -3729,13 +3747,36 @@ dependencies = [
  "base64 0.22.1",
  "futures-util",
  "http",
- "jsonrpsee-core",
+ "jsonrpsee-core 0.24.9",
  "pin-project",
  "rustls",
  "rustls-pki-types",
  "rustls-platform-verifier",
  "soketto",
  "thiserror 1.0.69",
+ "tokio",
+ "tokio-rustls",
+ "tokio-util",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "jsonrpsee-client-transport"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2a320a3f1464e4094f780c4d48413acd786ce5627aaaecfac9e9c7431d13ae1"
+dependencies = [
+ "base64 0.22.1",
+ "futures-util",
+ "http",
+ "jsonrpsee-core 0.25.1",
+ "pin-project",
+ "rustls",
+ "rustls-pki-types",
+ "rustls-platform-verifier",
+ "soketto",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-rustls",
  "tokio-util",
@@ -3756,7 +3797,7 @@ dependencies = [
  "http",
  "http-body",
  "http-body-util",
- "jsonrpsee-types",
+ "jsonrpsee-types 0.24.9",
  "pin-project",
  "rustc-hash",
  "serde",
@@ -3764,6 +3805,31 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tokio-stream",
+ "tracing",
+]
+
+[[package]]
+name = "jsonrpsee-core"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "693c93cbb7db25f4108ed121304b671a36002c2db67dff2ee4391a688c738547"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-timer",
+ "futures-util",
+ "http",
+ "http-body",
+ "http-body-util",
+ "jsonrpsee-types 0.25.1",
+ "pin-project",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-stream",
+ "tower 0.5.2",
  "tracing",
 ]
 
@@ -3779,8 +3845,8 @@ dependencies = [
  "hyper",
  "hyper-rustls",
  "hyper-util",
- "jsonrpsee-core",
- "jsonrpsee-types",
+ "jsonrpsee-core 0.24.9",
+ "jsonrpsee-types 0.24.9",
  "rustls",
  "rustls-platform-verifier",
  "serde",
@@ -3793,10 +3859,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpsee-http-client"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6962d2bd295f75e97dd328891e58fce166894b974c1f7ce2e7597f02eeceb791"
+dependencies = [
+ "base64 0.22.1",
+ "http-body",
+ "hyper",
+ "hyper-rustls",
+ "hyper-util",
+ "jsonrpsee-core 0.25.1",
+ "jsonrpsee-types 0.25.1",
+ "rustls",
+ "rustls-platform-verifier",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tower 0.5.2",
+ "url",
+]
+
+[[package]]
 name = "jsonrpsee-proc-macros"
 version = "0.24.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e65763c942dfc9358146571911b0cd1c361c2d63e2d2305622d40d36376ca80"
+dependencies = [
+ "heck 0.5.0",
+ "proc-macro-crate 3.3.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
+]
+
+[[package]]
+name = "jsonrpsee-proc-macros"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fa4f5daed39f982a1bb9d15449a28347490ad42b212f8eaa2a2a344a0dce9e9"
 dependencies = [
  "heck 0.5.0",
  "proc-macro-crate 3.3.0",
@@ -3818,15 +3920,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpsee-types"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66df7256371c45621b3b7d2fb23aea923d577616b9c0e9c0b950a6ea5c2be0ca"
+dependencies = [
+ "http",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "jsonrpsee-ws-client"
 version = "0.24.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01b3323d890aa384f12148e8d2a1fd18eb66e9e7e825f9de4fa53bcc19b93eef"
 dependencies = [
  "http",
- "jsonrpsee-client-transport",
- "jsonrpsee-core",
- "jsonrpsee-types",
+ "jsonrpsee-client-transport 0.24.9",
+ "jsonrpsee-core 0.24.9",
+ "jsonrpsee-types 0.24.9",
+ "url",
+]
+
+[[package]]
+name = "jsonrpsee-ws-client"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2da2694c9ff271a9d3ebfe520f6b36820e85133a51be77a3cb549fd615095261"
+dependencies = [
+ "http",
+ "jsonrpsee-client-transport 0.25.1",
+ "jsonrpsee-core 0.25.1",
+ "jsonrpsee-types 0.25.1",
+ "tower 0.5.2",
  "url",
 ]
 
@@ -6763,8 +6891,8 @@ dependencies = [
  "alloy-contract",
  "anyhow",
  "bincode",
- "celestia-rpc 0.10.0",
- "celestia-types 0.11.0",
+ "celestia-rpc 0.11.2",
+ "celestia-types 0.12.0",
  "futures-util",
  "log",
  "risc0-steel",
@@ -7038,7 +7166,7 @@ dependencies = [
  "alloy-primitives 0.8.25",
  "alloy-sol-types",
  "bincode",
- "celestia-types 0.11.0",
+ "celestia-types 0.12.0",
  "risc0-steel",
  "serde",
  "thiserror 2.0.12",

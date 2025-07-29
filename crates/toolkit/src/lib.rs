@@ -127,8 +127,8 @@ pub struct BlobProofData {
 pub fn share_proof_start_index_ods(share_proof: &ShareProof) -> u32 {
     // Row proofs cover rows + columns of the EDS, so we need to divide by 2 to isolate rows,
     // then by 2 again to ignore parity shares.
-    let row_size = share_proof.row_proof.proofs[0].total as u32 / 4;
-    let row_index = share_proof.row_proof.proofs[0].index as u32;
+    let row_size = share_proof.row_proof.proofs()[0].total as u32 / 4;
+    let row_index = share_proof.row_proof.proofs()[0].index as u32;
     let col_index = share_proof.share_proofs[0].start_idx();
 
     row_index * row_size + col_index
