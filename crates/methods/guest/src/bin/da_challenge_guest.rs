@@ -170,7 +170,7 @@ fn check_block_height_bounds(
 fn check_da_challenge(
     evm_env: &EvmEnv<StateDb, EthBlockHeader, Commitment>,
     blobstream_info: BlobstreamInfo,
-    serialized_da_guest_data: Vec<u8>,
+    da_challenge_guest_data: DaChallengeGuestData,
 ) -> Result<(), DaGuestError> {
     let DaChallengeGuestData {
         index_blob,
@@ -178,7 +178,7 @@ fn check_da_challenge(
         index_blob_proof_data: index_blob_data,
         block_proofs,
         first_blobstream_attestation,
-    } = bincode::deserialize(&serialized_da_guest_data).expect("failed to deserialize guest data");
+    } = da_challenge_guest_data;
 
     let BlobstreamInfo {
         address: blobstream_address,
@@ -250,13 +250,17 @@ fn main() {
     let blobstream_info: BlobstreamInfo = env::read();
     let serialized_da_guest_data: Vec<u8> = env::read_frame();
 
+    let da_challenge_guest_data: DaChallengeGuestData =
+        bincode::deserialize(&serialized_da_guest_data).expect("failed to deserialize guest data");
+    let index_blob = da_challenge_guest_data.index_blob;
+
     // Converts the input into a `EvmEnv` for execution. The `with_chain_spec` method is used
     // to specify the chain configuration. It checks that the state matches the state root in the
     // header provided in the input.
     let evm_env = input.into_env().with_chain_spec(&chain_spec);
     let blobstream_address = blobstream_info.address;
 
-    match check_da_challenge(&evm_env, blobstream_info, serialized_da_guest_data) {
+    match check_da_challenge(&evm_env, blobstream_info, da_challenge_guest_data) {
         Ok(()) => panic!("the specified blob is available, DA challenge failed"),
         Err(DaGuestError::Input(err)) => {
             panic!("invalid input: {}", err)
@@ -268,6 +272,7 @@ fn main() {
     let journal = Journal {
         commitment: evm_env.into_commitment(),
         blobstreamAddress: blobstream_address,
+        indexBlob: index_blob.into(),
     };
     env::commit_slice(&journal.abi_encode());
 }
