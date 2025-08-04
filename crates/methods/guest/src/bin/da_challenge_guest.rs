@@ -86,12 +86,11 @@ fn verify_span_sequence_inclusion(
 
     let last_share_index = span_sequence.end_index_ods()?;
 
-    env::log(&format!("last_share_index: {}", last_share_index));
+    env::log(&format!("last_share_index: {last_share_index}"));
 
     if last_share_index > ods_size {
         env::log(&format!(
-            "invalid blob commitment end index: {} > {}",
-            last_share_index, ods_size
+            "invalid blob commitment end index: {last_share_index} > {ods_size}",
         ));
         return Err(DaFraud::ShareIndexOutOfBounds {
             share_index: last_share_index,
@@ -259,7 +258,7 @@ fn main() {
     match check_da_challenge(&evm_env, blobstream_info, serialized_da_guest_data) {
         Ok(()) => panic!("the specified blob is available, DA challenge failed"),
         Err(DaGuestError::Input(err)) => {
-            panic!("invalid input: {}", err)
+            panic!("invalid input: {err}")
         }
         Err(DaGuestError::Fraud(err)) => env::log(&format!("DA challenge success: {err}")),
     }
