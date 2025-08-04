@@ -163,3 +163,10 @@ bash scripts/run-tests.sh
 
 If you want to reset the test environment, run `bash scripts/reset-tests.sh --reset`.
 Currently, tests must be run sequentially because the Ethereum RPC calls are not thread safe.
+
+[Foundry]: https://getfoundry.sh/anvil/overview/
+[RISC Zero]: https://dev.risczero.com/api/zkvm/install
+[Counter]: ./contracts/src/Counter.sol
+[Steel]: https://www.risczero.com/blog/introducing-steel
+[Celestia]: https://celestia.org/
+[Blobstream]: https://docs.celestia.org/how-to-guides/blobstream
