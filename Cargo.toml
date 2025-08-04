@@ -14,9 +14,9 @@ risc0-ethereum-contracts = { git = "https://github.com/risc0/risc0-ethereum", br
 risc0-steel = { git = "https://github.com/risc0/risc0-ethereum", branch = "release-2.0" }
 
 # risc0 monorepo dependencies.
-risc0-build = { version = "2.0", features = ["docker"] }
-risc0-zkvm = { version = "2.0", features = ["unstable"] }
-risc0-zkp = { version = "2.0", default-features = false }
+risc0-build = { version = "2.3.1", features = ["docker"] }
+risc0-zkvm = { version = "2.3.1", features = ["unstable"] }
+risc0-zkp = { version = "2.0.2", default-features = false }
 
 alloy = { version = "0.12", features = ["full", "provider-anvil-node"] }
 alloy-primitives = { version = "0.8", features = ["rlp", "serde", "std"] }
