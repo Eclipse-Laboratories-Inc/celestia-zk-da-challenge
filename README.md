@@ -135,8 +135,8 @@ All these challenge types and more are tested in the integration tests.
 
 ### Submitting real ZK proofs
 
-If you want to run the tests with valid Groth16 RISC Zero proofs, simply unset the `RISC0_DEV_MODE` when deploying
-the counter contract and running the CLI. Beware that local proving time is long (minutes).
+If you want to run the tests with valid Groth16 RISC Zero proofs, simply unset the `RISC0_DEV_MODE` variable 
+when deploying the counter contract and running the CLI. Beware that local proving time is long (minutes).
 We advise configuring a BONSAI API key to speed up proving time:
 
 ```
@@ -163,3 +163,10 @@ bash scripts/run-tests.sh
 
 If you want to reset the test environment, run `bash scripts/reset-tests.sh --reset`.
 Currently, tests must be run sequentially because the Ethereum RPC calls are not thread safe.
+
+[Foundry]: https://getfoundry.sh/anvil/overview/
+[RISC Zero]: https://dev.risczero.com/api/zkvm/install
+[Counter]: ./contracts/src/Counter.sol
+[Steel]: https://www.risczero.com/blog/introducing-steel
+[Celestia]: https://celestia.org/
+[Blobstream]: https://docs.celestia.org/how-to-guides/blobstream
